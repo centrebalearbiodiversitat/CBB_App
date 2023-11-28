@@ -20,7 +20,7 @@ output$inputDataframe <- DT::renderDataTable({
   
   req(input$file1)
   
-  temp_df$df_data <-  fread(input$file1$datapath) %>% 
+  temp_df$df_data <-  fread(input$file1$datapath, sep = ",") %>% 
     as.data.frame()
   
   temp_df$df_data
