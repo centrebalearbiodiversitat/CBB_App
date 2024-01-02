@@ -1,0 +1,8 @@
+#-------#
+# TO DO #
+#-------#
+
+- Aggiungere altri database per vedere le occurrences (e.s. bold, ncbi, museo barcellona)
+
+
+

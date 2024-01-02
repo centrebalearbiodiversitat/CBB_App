@@ -9,7 +9,6 @@ fluidRow(
 
 hr(),
 
-# Input: Select a .csv file
 div(style="display: inline-block;vertical-align:top; width: 400px;",   
     
     # Taxon scientific name

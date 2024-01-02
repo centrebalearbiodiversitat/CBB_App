@@ -3,7 +3,7 @@
 #-------------------------------#
 
 # Load libraries
-pacman::p_load(dslib, data.table, DT, jsonlite, leaflet, shiny, tidyverse, 
+pacman::p_load(bslib, data.table, DT, jsonlite, leaflet, shiny, tidyverse, 
                shinycssloaders, rgbif, shinydashboard, sf, biomonitoR,
                vegan, openxlsx, shinydashboardPlus)
 

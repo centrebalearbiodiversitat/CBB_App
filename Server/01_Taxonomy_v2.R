@@ -1,6 +1,6 @@
-#----------#
-# Taxonomy #
-#----------#
+#--------------#
+# Taxonomy v.2 #
+#--------------#
 
 # Objects to store files ----
 temp_df <- reactiveValues(df_data = NULL) # <- Store .csv file input
@@ -15,23 +15,34 @@ observe({
   updateSelectInput(session = session, "text.db", choices = colmn.names)
 })
 
-# Show table whit uploaded data (temp_df)
+# Show table whit uploaded data (temp_df) in the card
 output$inputDataframe <- DT::renderDataTable({
-  
+
+  req(input$file1)
+
+  temp_df$df_data <-  fread(input$file1$datapath, sep = ",") %>%
+    as.data.frame()
+
+  temp_df$df_data
+
+},
+options = (list(scrollX = TRUE, paging = FALSE)), rownames= FALSE)
+
+
+output$uiTaxonomy <- renderUI({
   req(input$file1)
   
-  temp_df$df_data <-  fread(input$file1$datapath, sep = ",") %>% 
-    as.data.frame()
-  
-  temp_df$df_data
-  
-}, 
-options = (list(scrollX = TRUE, paging = FALSE, scrollY = "300px")),
-rownames= FALSE, caption = HTML("<h3> Taxonomy </h3>"))
+  card(
+    card_header("Taxonomy"),
+    full_screen = TRUE,
+    DT::dataTableOutput("inputDataframe")
+  )
+})
+
 
 
 # Taxonomy check ----
-observeEvent(input$taxa.run.button,{
+observeEvent(input$taxa.run.button, {
   
   if(!is.null(temp_df$df_data)){
     if(input$text.db %in% colnames(temp_df$df_data)){
@@ -77,27 +88,38 @@ output$dataTaxonomy <- DT::renderDataTable({
   temp_df.2$df_data
   
 }, 
-options = (list(scrollX = TRUE, paging = FALSE, scrollY = "300px")),
-rownames= FALSE, caption = HTML("<h3> Reviewed taxonomy </h3>"))
+options = (list(scrollX = TRUE, paging = FALSE)), rownames= FALSE) 
+
+
+output$uiRevTaxonomy <- renderUI({
+  req(temp_df.2$df_data)
+  
+  card(
+    card_header("Reviewed taxonomy"),
+    full_screen = FALSE,
+    DT::dataTableOutput("dataTaxonomy")
+  )
+})
+
 
 # Message to check if the rows of initial and final dataset have the same number.
 observe({
-
+  
   req(temp_df$df_data)
   req(temp_df.2$df_data)
   
   if(nrow(temp_df$df_data) == nrow(temp_df.2$df_data)){
-
+    
     showNotification("The initial and Final datasets HAVE the same number of rows.",
                      type = "message", duration = 5)
-
+    
   } else {
-
+    
     showNotification("The initial and Final datasets DO NOT HAVE the same number of rows.",
-                     type = "warning", duration = 5)
-
+                     type = "warning", duration = NULL)
+    
   }
-
+  
 })
 
 
