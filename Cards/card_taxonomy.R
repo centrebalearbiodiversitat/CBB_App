@@ -14,24 +14,24 @@ cards.taxonomy <- list(
          fillable = TRUE,
          
          # Side bar
-         sidebar = sidebar(
-           width = 400, # sidebar width
+         sidebar = sidebar(width = 400, # sidebar width
            
            # Input file 
            fileInput("file1", 
-                     markdown("#### Chose CSV File"),
+                     markdown("##### Chose CSV File"),
                      accept = c(".csv")),
            
            # Select taxa column where we want to perform the taxonomic check
            selectInput("text.db", 
-                      markdown("#### Name of taxa column"),
+                      markdown("##### Name of taxa column"),
                        choices = NULL),
            
            # Select database to perform the taxonomy check
            selectInput("taxon.an",
-                       markdown("#### Choose taxonomy style"),
-                       choices = c("Specify_COL", "CBB_DB_COL",
-                                   "Specify_WORMS")),
+                       markdown("##### Choose taxonomy style"),
+                       choices = c("CBB DB COL" = "CBB_DB_COL",
+                                   "Specify COL" = "Specify_COL",
+                                   "Specify WORMS" = "Specify_WORMS")),
            
            # Buttons
            layout_columns(col_widths = c(4, 4),

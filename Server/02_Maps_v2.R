@@ -2,6 +2,9 @@
 # Maps #
 #------#
 
+# IUCN KEY: "adfd090eb40f601150b22d9676a3c228c1190bd7af733ac4e7172d683e31e1b4"
+
+
 # Habitat names
 hb <- c("Freshwater/Terrestrial", "Marine")
 
@@ -18,7 +21,6 @@ tempIUCN <- list(aoo = reactiveValues(aoo = NULL),
                  eoo = reactiveValues(eoo = NULL),
                  cat = reactiveValues(cat = NULL),
                  habitatIUCN = reactiveValues(habitatIUCN = NULL)) # Store IUCN category
-
 
 
 # Connect to GBIF and create maps ----------------------------------------------
@@ -48,53 +50,65 @@ observe({
   }
   
   # Find GBIF name  
+  # tax_key <- name_backbone(name = "Abralia veranyi", kingdom = "Animalia")
   # tax_key <- name_backbone(name = "Podarcis pityusensis", kingdom = "Animalia")
   tax_key <- name_backbone(name = input$text.gbif, kingdom = input$kingdom.gbif)
   # Key ID from GBIF for the accepted name
   key <- ifelse("acceptedUsageKey" %in% colnames(tax_key), tax_key$acceptedUsageKey, tax_key$usageKey)
   
-  # List of occurrence within the Balearic islands
+  # List of occurrence with coordinates within the Balearic islands
   dat_ne <- occ_search(taxonKey = key, hasCoordinate = T, 
                        geometry = balearic, limit = 99999, occurrenceStatus = "PRESENT") %>% 
     .$data %>% 
-    as.data.frame() %>% 
-    select(decimalLatitude, decimalLongitude) %>% 
-    rename(longitude = decimalLongitude, latitude = decimalLatitude)
+    as.data.frame()  # %>% 
+    # select(decimalLatitude, decimalLongitude) %>% 
+    # rename(longitude = decimalLongitude, latitude = decimalLatitude)
   
-  # Add ID column
-  dat_ne$idOcc <- rownames(dat_ne) 
-  
-  # Transform the dataframe to spatial dataframe and assign crs
-  dat_ne <- st_as_sf(dat_ne, coords = c("longitude", "latitude"), crs = 4326)
-  
-  # Polygon points intersection
-  habitatIn <- st_intersection(dat_ne, shp)
-  
-  habitatInId <- habitatIn$idOcc
-  
-  habitatIn <- habitatIn %>% 
-    st_coordinates() %>% 
-    as.data.frame() %>% 
-    rename(longitude = X, latitude = Y)
-
-  habitatIn <- cbind(habitatIn, habitatInId)
-  
-  # Attribute the habitat to each occurrence
-  # dat_ne$inOut <- ifelse(dat_ne$idOcc %in% habitatIn$habitatInId, hb[hb == "Freshwater/Terrestrial"], hb[hb != "Marine"])
-  dat_ne$inOut <- ifelse(dat_ne$idOcc %in% habitatIn$habitatInId, hb[hb == input$habitat.gbif], hb[hb != input$habitat.gbif])
-  
-  dat_neId <- dat_ne$inOut
-  
-  # Create dataframe only with coordinates
-  dat_ne <- dat_ne %>% 
-    st_coordinates() %>% 
-    as.data.frame() %>% 
-    rename(longitude = X, latitude = Y)
-  
-  # Create complete file that will download object
-  # dat_ne <- cbind(tax_key$scientificName, dat_ne, dat_neId)
-  temp_dat_ne$dat_ne <- cbind(tax_key$scientificName, dat_ne, dat_neId)
-  
+  if(nrow(dat_ne) == 0){
+    
+    showNotification(paste(input$text.gbif, "has no occurrence whithin the Balearic territory"), 
+                     type = "error")
+    
+  } else{
+    
+    dat_ne <- dat_ne %>% 
+      select(decimalLatitude, decimalLongitude) %>% 
+      rename(longitude = decimalLongitude, latitude = decimalLatitude)
+    
+    # Add ID column
+    dat_ne$idOcc <- rownames(dat_ne) 
+    
+    # Transform the dataframe to spatial dataframe and assign crs
+    dat_ne <- st_as_sf(dat_ne, coords = c("longitude", "latitude"), crs = 4326)
+    
+    # Polygon points intersection
+    habitatIn <- st_intersection(dat_ne, shp)
+    
+    habitatInId <- habitatIn$idOcc
+    
+    habitatIn <- habitatIn %>% 
+      st_coordinates() %>% 
+      as.data.frame() %>% 
+      rename(longitude = X, latitude = Y)
+    
+    habitatIn <- cbind(habitatIn, habitatInId)
+    
+    # Attribute the habitat to each occurrence
+    # dat_ne$inOut <- ifelse(dat_ne$idOcc %in% habitatIn$habitatInId, hb[hb == "Freshwater/Terrestrial"], hb[hb != "Marine"])
+    dat_ne$inOut <- ifelse(dat_ne$idOcc %in% habitatIn$habitatInId, hb[hb == input$habitat.gbif], hb[hb != input$habitat.gbif])
+    
+    dat_neId <- dat_ne$inOut
+    
+    # Create dataframe only with coordinates
+    dat_ne <- dat_ne %>% 
+      st_coordinates() %>% 
+      as.data.frame() %>% 
+      rename(longitude = X, latitude = Y)
+    
+    # Create complete file that will download object
+    # dat_ne <- cbind(tax_key$scientificName, dat_ne, dat_neId)
+    temp_dat_ne$dat_ne <- cbind(tax_key$scientificName, dat_ne, dat_neId)
+    
     # Plot map
     output$myMap <- renderLeaflet({
       leaflet() %>%
@@ -107,6 +121,7 @@ observe({
     
     # Create object only with IN habitat, in order to calculate AOO and EOO
     temp_habitatIn$habitatIn <- habitatIn[ ,1:2]
+    
     
     # Extract min, max, and mean elevation for the species elevation 
     elev <- extract(r, habitatIn[ ,1:2]) %>% 
@@ -121,14 +136,14 @@ observe({
       
       paste0("Taxonomy: ", tax_key$scientificName, "\n\n",
              "Number of occurrence with coordinates: ", nrow(dat_ne), "\n",
-             "Number of occurrences inside de habitat: ", nrow(habitatIn),
+             "Number of occurrences inside the selected habitat: ", nrow(habitatIn),
              " (", round(nrow(habitatIn)/nrow(dat_ne) * 100, digits = 2), "%)", "\n\n",
              "Min Elevation: ", elev$min, "\n",
              "Max Elevation: ", elev$max, "\n", 
              "Mean Elevation: ", round(elev$mean, digits = 2))
     })
-    
-    })
+    }
+  })
   
   # Download button for data
   output$downloadButtonOCC <- renderUI({
@@ -137,6 +152,7 @@ observe({
   }) 
 })
 
+# UI output map
 output$uiMapStat <- renderUI({
   req(input$text.gbif)
   
@@ -154,57 +170,59 @@ observeEvent(input$aoo.button, {
   
   req(temp_habitatIn$habitatIn)
   
-  # temp_aoo$aoo <- aoo(temp_habitatIn$habitatIn)
-  # temp_eoo$eoo <- eoo(temp_habitatIn$habitatIn)
-  # temp_iucnCat$cat <- rl_history(input$text.gbif, key = "adfd090eb40f601150b22d9676a3c228c1190bd7af733ac4e7172d683e31e1b4", region = 'global')
-  
-  
-  tempIUCN$aoo$aoo <- aoo(temp_habitatIn$habitatIn)
-  
-  tempIUCN$eoo$eoo <- eoo(temp_habitatIn$habitatIn)
-  tempIUCN$cat$cat <- rl_history(input$text.gbif, key = "adfd090eb40f601150b22d9676a3c228c1190bd7af733ac4e7172d683e31e1b4", region = 'global')
-  tempIUCN$habitatIUCN$habitatIUCN <- rl_habitats(input$text.gbif, key = "adfd090eb40f601150b22d9676a3c228c1190bd7af733ac4e7172d683e31e1b4", region = 'global')
-  
-  # Show text whit statistics
-  output$mapAOO <- renderText({
+  if(input$IUCNKey == ""){
     
-    paste0("AOO:", tempIUCN$aoo$aoo, "\n",
-           "EOO:", tempIUCN$eoo$eoo)
+    showNotification(markdown("Please insert YOUR IUCN Key"), type = "warning")
     
+  } else{
+    
+    tempIUCN$aoo$aoo <- aoo(temp_habitatIn$habitatIn)
+    
+    tempIUCN$eoo$eoo <- eoo(temp_habitatIn$habitatIn)
+    tempIUCN$cat$cat <- rl_history(input$text.gbif, key = input$IUCNKey, region = "global")
+    tempIUCN$habitatIUCN$habitatIUCN <- rl_habitats(input$text.gbif, key = input$IUCNKey, region = "global")
+    
+    # Show text whit statistics
+    output$mapAOO <- renderText({
+      
+      paste0("AOO:", tempIUCN$aoo$aoo, "Km2", "\n",
+             "EOO:", tempIUCN$eoo$eoo, "Km2")
+      
+    })
+    
+    output$iucnCat <- DT::renderDataTable({
+      
+      as.data.frame(tempIUCN$cat$cat$result)
+      
+    }, options = (list(scrollX = TRUE, paging = FALSE, searching = FALSE)), 
+    rownames = FALSE)
+    
+    output$iucnHabitat <- DT::renderDataTable({
+      
+      as.data.frame(tempIUCN$habitatIUCN$habitatIUCN$result)
+      
+    }, options = (list(scrollX = TRUE, paging = FALSE, searching = FALSE)), 
+    rownames = FALSE)
+  
+      }
+  
   })
-
-  output$iucnCat <- DT::renderDataTable({
-    
-    # as.data.frame(temp_iucnCat$cat$result)
-    as.data.frame(tempIUCN$cat$cat$result)
-    
-  }, options = (list(scrollX = TRUE, paging = FALSE, searching = FALSE)), 
-  rownames = FALSE)
-  
-  output$iucnHabitat <- DT::renderDataTable({
-    
-    as.data.frame(tempIUCN$habitatIUCN$habitatIUCN$result)
-    
-  }, options = (list(scrollX = TRUE, paging = FALSE, searching = FALSE)), 
-  rownames = FALSE)
-  
-})
 
 output$uiAooEoo <- renderUI({
   
   req(tempIUCN$aoo$aoo)
   
   layout_column_wrap(style = htmltools::css(grid_template_columns = "1fr 2fr 2fr"),
-                 card(card_header("AOO and EOO"), height = "50%",
-                      full_screen = FALSE, fill = F,
+                 card(card_header("AOO and EOO"), height = "70%",
+                      full_screen = FALSE, fill = FALSE,
                       verbatimTextOutput(outputId = "mapAOO")
                       ),
-                 card(card_header("IUCN category"), height = "50%",
-                      full_screen = FALSE, fill = F,
+                 card(card_header("IUCN category (global evaluation)"), height = "70%",
+                      full_screen = FALSE, fill = FALSE,
                       DT::dataTableOutput(outputId = "iucnCat")
                       ),
-                 card(card_header("IUCN habitat"), height = "50%",
-                      full_screen = FALSE, fill = F,
+                 card(card_header("IUCN habitat (global evaluation)"), height = "70%",
+                      full_screen = FALSE, fill = FALSE,
                       DT::dataTableOutput(outputId = "iucnHabitat")
                       )
                  )

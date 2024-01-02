@@ -32,9 +32,8 @@ options = (list(scrollX = TRUE, paging = FALSE)), rownames= FALSE)
 output$uiTaxonomy <- renderUI({
   req(input$file1)
   
-  card(
-    card_header("Taxonomy"),
-    full_screen = TRUE,
+  card(card_header("Taxonomy"),
+    full_screen = TRUE, fill = FALSE,
     DT::dataTableOutput("inputDataframe")
   )
 })
@@ -96,7 +95,7 @@ output$uiRevTaxonomy <- renderUI({
   
   card(
     card_header("Reviewed taxonomy"),
-    full_screen = FALSE,
+    full_screen = FALSE, fill = FALSE,
     DT::dataTableOutput("dataTaxonomy")
   )
 })

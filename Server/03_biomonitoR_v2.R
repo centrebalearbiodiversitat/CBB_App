@@ -114,9 +114,6 @@ output$uiBiorInfo <- renderUI({
        DT::dataTableOutput("generalInfo_bioR"))
 })
 
-
-
-
 # Index calculation ------------------------------------------------------------
 
 # Button to perform diversity indices
@@ -204,7 +201,7 @@ observeEvent(input$nmds.run.button.bior, {
   req(temp_br_taxa$df_br_taxa)
   
   # Convert to vegan format
-  df_br_vegan <- convert_to_vegan(temp_br_agr$df_br_agr, tax_lev = "Taxa")
+  df_br_vegan <- convert_to_vegan(temp_br_agr$df_br_agr, tax_lev = input$NMDSAggreg)
   
   # Calculate NMDS
   temp_br_nmds$df_br_nmds = metaMDS(df_br_vegan, 
@@ -216,6 +213,7 @@ observeEvent(input$nmds.run.button.bior, {
 
 # Render plot NMDS
 output$nmdsPlot <- renderPlotly({
+  
   req(temp_br_nmds$df_br_nmds)
   
   # Object with NMDS results
@@ -233,7 +231,9 @@ output$nmdsPlot <- renderPlotly({
       mutate(across(c("MDS1", "MDS2"), round, 2)) %>% 
       mutate(site = rownames(.))
     
-    if(input$nmdsPlotType == "General") {
+    
+    #if(input$nmdsPlotType == "General")
+      # if(in.null(temp_br_nmdsEnv$df_br_nmdsEnv)){
       
       p1 <- ggplot() +
         geom_point(data = env, aes(x = MDS1, y = MDS2, color = site)) +
@@ -244,7 +244,7 @@ output$nmdsPlot <- renderPlotly({
         geom_vline(aes(xintercept = 0) , linetype = "dashed", linewidth = 0.6, colour = "blue") +
         ggtitle(label = "NMDS result - General Plot - Stress: ", round(nmds$stress, digits = 2)) +
         theme_bw()
-    } 
+    # } 
     
   } else {
     
@@ -255,7 +255,7 @@ output$nmdsPlot <- renderPlotly({
     # env$Site <- rownames(env)
     env <- merge(env, temp_br_nmdsEnv$df_br_nmdsEnv, by = "site")
     
-    if(input$nmdsPlotType == "Ellipse") {
+    # if(input$nmdsPlotType == "Ellipse") {
       
       # Check before if the column is not numeric
       
@@ -268,11 +268,11 @@ output$nmdsPlot <- renderPlotly({
         labs(colour = input$nmdsGroup) +
         theme_bw()
       
-    } else {
-      
-      showNotification(markdown("### Error: Change NMDS plot type"), 
-                       type = "error", duration = 15)
-    }
+    # } else {
+    #   
+    #   showNotification(markdown("### Error: Change NMDS plot type"), 
+    #                    type = "error", duration = 15)
+    # }
     
   }
   
@@ -305,7 +305,7 @@ observeEvent(input$acc.run.button.bior, {
   req(temp_br_taxa$df_br_taxa)
   
   # Convert to vegan format
-  df_br_vegan <- convert_to_vegan(temp_br_agr$df_br_agr, tax_lev = "Taxa")
+  df_br_vegan <- convert_to_vegan(temp_br_agr$df_br_agr, tax_lev = input$AccAggreg)
   
   # Calculate NMDS
   sp = specaccum(df_br_vegan, method = input$accMethod, permutations = 100,
@@ -339,7 +339,7 @@ output$accPlot <- renderPlotly({
   
 })
 
-# Create card containing accumulation curves
+# Create card containing Accumulation curves
 output$uiBiorAcc <- renderUI({
   req(temp_br_acc$df_br_acc)
   
@@ -356,7 +356,7 @@ observeEvent(input$rar.run.button.bior, {
   req(temp_br_taxa$df_br_taxa)
   
   # Convert to vegan format
-  df_br_vegan <- convert_to_vegan(temp_br_agr$df_br_agr, tax_lev = "Taxa")
+  df_br_vegan <- convert_to_vegan(temp_br_agr$df_br_agr, tax_lev = input$RareAggreg)
   
   # Calculate rarefaction curves
   rarCurv <- rarecurve(df_br_vegan, step = 10, sample = 400, label = FALSE)
@@ -395,7 +395,7 @@ output$rarPlot <- renderPlotly({
   
 })
 
-# Create card containing accumulation curves
+# Create card containing Rarefaction curves
 output$uiBiorRar <- renderUI({
   req(temp_br_rar$df_br_rar)
   

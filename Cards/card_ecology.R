@@ -3,7 +3,7 @@
 #--------------#
 
 # OTUs data: https://www.frontiersin.org/articles/10.3389/fmicb.2020.592189/full
-
+# NMDS Tutorial: https://uw.pressbooks.pub/appliedmultivariatestatistics/chapter/nmds/
 
 # Drop-down menu
 accordion_ecology <- accordion(open = FALSE,
@@ -11,7 +11,7 @@ accordion_ecology <- accordion(open = FALSE,
   # Biomonitor ----                         
   accordion_panel("Diveristy indices", # icon = bsicons::bs_icon("menu-app"), 
                   
-                  layout_columns(col_widths = c(12, 12, 6, 6, 4, 4),
+                  layout_columns(col_widths = c(12, 6, 6, 4, 4),
                   # 1. Description of the sub panel
                          markdown("A diversity index is a quantitative measure that 
                                   reflects how many different types (e.g., species) 
@@ -23,25 +23,17 @@ accordion_ecology <- accordion(open = FALSE,
                                   levels or categories such as genera, families, functional 
                                   types, or haplotypes."),
                   
-                  # 2. Reference dataset
-                         selectInput("refdb.group", markdown("##### Taxonomy ref. group"),
-                                     choices = c("Macroinvertebrate" = "mi",
-                                                 "Macrophytes" = "mf",
-                                                 "Fish" = "fi",
-                                                 "Diatoms." = "di"),
-                                     selected = "mi"),
-                  
-                  # 4. Calculate diversity indices
+                  # 2. Calculate diversity indices
                   actionButton("div.run.button.bior", markdown("Div. Index")),
                   
-                  # 5. Calculate community composition
+                  # 3. Calculate community composition
                   actionButton("com.run.button.bior", markdown("Com. Compo")),               
                   
-                  # 6. Download diversity index results
+                  # 4. Download diversity index results
                   conditionalPanel(condition = "input['div.run.button.bior'] % 2 == 1",
                                    uiOutput("dowButtonBiorIndex")),
                   
-                  # 7. Download community composition results
+                  # 5. Download community composition results
                   conditionalPanel(condition = "input['com.run.button.bior'] % 2 == 1",
                                    uiOutput("dowButtonBiorComp"))
                   
@@ -55,7 +47,7 @@ accordion_ecology <- accordion(open = FALSE,
                                  
                                  # 1. Description of the sub panel
                                  markdown("Non-metric multidimensional scaling (NMDS) 
-                                          is a statistical ordination technique useful 
+                                          is a distance-based ordination technique useful 
                                           to represent the position of objects (e.g., communities) 
                                           in multidimensional space as accurately as
                                           possible using a reduced number of dimensions 
@@ -64,9 +56,13 @@ accordion_ecology <- accordion(open = FALSE,
                                           distance measure suitable for the data, avoiding 
                                           assumptions about the data linear relationship."),
                                  
-                                 # 2. Load environmental file is needed
-                                 fileInput("envNMDS", markdown("#### Chose environmental .csv"),
-                                           accept = c(".csv")), 
+                                 # 2.  Chose taxa level biomonitoR aggregation for convert to vegan
+                                 selectInput("NMDSAggreg", markdown("##### Taxa Level aggregation"),
+                                             choices = c("Family" = "Family",
+                                                         "Genus" = "Genus",
+                                                         "Species" = "Species",
+                                                         "Taxa" = "Taxa"),
+                                             selected = "Family"),
                                  
                                  # 3. Number of NMDS dimension
                                  numericInput("nmdsk", "N. dimension (k)", value = 2),
@@ -77,15 +73,19 @@ accordion_ecology <- accordion(open = FALSE,
                                  # 5. Maximum number of random starts in search of stable solution. 
                                  numericInput("nmdsTrymax", "N. random (max)", value = 50),
                                  
-                                 # 6. ?
-                                 selectInput("nmdsGroup", markdown("#### Environmental group"),
-                                             choices = NULL), 
+                                 # 6. Load environmental file is needed
+                                 fileInput("envNMDS", markdown("##### Chose environmental .csv"),
+                                           accept = c(".csv")),
                                  
-                                 # 7. Type of plot for NMDS
-                                 selectInput("nmdsPlotType", markdown("#### NMDS Plot type"),
-                                             choices = c("General",
-                                                         "Ellipse"),
-                                             selected = "General"),
+                                 # 7. Select the environmental group for the ellipse graph
+                                 selectInput("nmdsGroup", markdown("##### Environmental group"),
+                                             choices = NULL),
+                                 
+                                 # # 7. Type of plot for NMDS
+                                 # selectInput("nmdsPlotType", markdown("##### NMDS Plot type"),
+                                 #             choices = c("General",
+                                 #                         "Ellipse"),
+                                 #             selected = "General"),
                                  
                                  # 8. Run NMDS analysis                                                     
                                  actionButton("nmds.run.button.bior", markdown("NMDS"),
@@ -99,7 +99,7 @@ accordion_ecology <- accordion(open = FALSE,
   
   # Accumulation curves ----
   accordion_panel("Accumulation curves", #icon = bsicons::bs_icon("sliders"),
-                  layout_columns(col_widths = c(12, 8),
+                  layout_columns(col_widths = c(12, 12, 12, 12),
                                  
                                  # 1. Description of the sub panel
                                  markdown("Species accumulation curves represent the 
@@ -108,8 +108,16 @@ accordion_ecology <- accordion(open = FALSE,
                                           species richness. The order in which samples are included in
                                           a species accumulation curve will influence the overall shape."),
                                  
-                                 # 2. method
-                                 selectInput("accMethod", markdown("#### Method"),
+                                 # 2.  Chose taxa level biomonitoR aggregation for convert to vegan
+                                 selectInput("AccAggreg", markdown("##### Taxa Level aggregation"),
+                                             choices = c("Family" = "Family",
+                                                         "Genus" = "Genus",
+                                                         "Species" = "Species",
+                                                         "Taxa" = "Taxa"),
+                                             selected = "Family"),
+                                 
+                                 # 3. method
+                                 selectInput("accMethod", markdown("##### Method"),
                                              choices = c("Collector" = "collector",
                                                          "Random" = "random",
                                                          "Exact" = "exact",
@@ -117,7 +125,7 @@ accordion_ecology <- accordion(open = FALSE,
                                                          "Rarefaction" = "rarefaction"),
                                              selected = "random"),
                                  
-                                 # 2. Run button for Accumulation curves
+                                 # 4. Run button for Accumulation curves
                                  actionButton("acc.run.button.bior", markdown("Acc. Curves"))
                                  )
                   ),
@@ -134,6 +142,14 @@ accordion_ecology <- accordion(open = FALSE,
                                           grow rapidly at first, as the most common species 
                                           are found, until a plateau indicating that only the 
                                           rarest species remain to be sampled."),
+                                 
+                                 # 2.  Chose taxa level biomonitoR aggregation for convert to vegan
+                                 selectInput("RareAggreg", markdown("##### Taxa Level aggregation"),
+                                             choices = c("Family" = "Family",
+                                                         "Genus" = "Genus",
+                                                         "Species" = "Species",
+                                                         "Taxa" = "Taxa"),
+                                             selected = "Family"),
                                  
                                  # 2. Run button for Rarefaction curves
                                  actionButton("rar.run.button.bior", markdown("Rar. Curves"))
@@ -159,17 +175,29 @@ cards.ecology <- list(
          sidebar = sidebar(width = 400, # sidebar width
            
            # Import file    
-           layout_columns(col_widths = c(12, 12, 12),
+           layout_columns(col_widths = c(12, 12, 12, 12),
           
-                          # Load biomonitoR file
+                          # 1. Load biomonitoR file
                           fileInput("fileBr_taxa", markdown("##### Chose TAXA .csv"),
                                     accept = c(".csv")),
                           
-                          # Load custom dataset
+                          # 2. Load custom dataset
                           fileInput("fileBr_refdb", markdown("##### Chose Reference DB .csv file"),
                                     accept = c(".csv")),
                           
-                          actionButton("div.run.button.biorPrep", markdown("Prepare to biomonitoR"))
+                          # 3. Reference dataset
+                          selectInput("refdb.group", markdown("##### Taxonomy ref. group"),
+                                      choices = c("Macroinvertebrate" = "mi",
+                                                  "Macrophytes" = "mf",
+                                                  "Fish" = "fi",
+                                                  "Diatoms." = "di"),
+                                      selected = "mi"),
+                          
+                          # 4. Button to prepare the data in biomonitoR format
+                          actionButton("div.run.button.biorPrep", markdown("Prepare to biomonitoR")),
+                          
+                          markdown("Download the template for biomonitoR TAXA table from 
+                                   [here](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/centrebalearbiodiversitat/CBB_App/blob/main/data/template_biomonitoR.csv).")
                           
                           ),
            
