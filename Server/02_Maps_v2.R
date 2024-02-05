@@ -11,11 +11,7 @@ hb <- c("Freshwater/Terrestrial", "Marine")
 # Temporary files --------------------------------------------------------------
 
 temp_habitatIn <- reactiveValues(habitatIn = NULL) # Occurrences inside the habitat. Needed to calculate AOO and EOO.
-temp_dat_ne <- reactiveValues(dat_ne = NULL) #
-
-# temp_aoo <- reactiveValues(aoo = NULL) # Store AOO value
-# temp_eoo <- reactiveValues(eoo = NULL) # Store EOO value
-# temp_iucnCat <- reactiveValues(cat = NULL) # Store IUCN category
+temp_dat_ne <- reactiveValues(dat_ne = NULL) # Data of Balearic islands with habitat specification
 
 tempIUCN <- list(aoo = reactiveValues(aoo = NULL),
                  eoo = reactiveValues(eoo = NULL),
@@ -31,7 +27,7 @@ observe({
   req(input$text.gbif)
   
   observeEvent(input$gbif.map.button, {
-  if(input$habitat.gbif == "mar"){
+  if(input$habitat.gbif == "Marine"){
     
     # Polygon for the Balearic sea extension
     balearic <- "POLYGON((0.194 37.762, 5.217 37.762,5.217 41.058,0.194 41.058,0.194 37.762))"
@@ -57,8 +53,9 @@ observe({
   key <- ifelse("acceptedUsageKey" %in% colnames(tax_key), tax_key$acceptedUsageKey, tax_key$usageKey)
   
   # List of occurrence with coordinates within the Balearic islands
-  dat_ne <- occ_search(taxonKey = key, hasCoordinate = T, 
-                       geometry = balearic, limit = 99999, occurrenceStatus = "PRESENT") %>% 
+  dat_ne <- occ_search(taxonKey = key, hasCoordinate = TRUE, 
+                       geometry = balearic, limit = 99999, 
+                       occurrenceStatus = "PRESENT") %>% 
     .$data %>% 
     as.data.frame()  # %>% 
     # select(decimalLatitude, decimalLongitude) %>% 
@@ -94,7 +91,7 @@ observe({
     habitatIn <- cbind(habitatIn, habitatInId)
     
     # Attribute the habitat to each occurrence
-    # dat_ne$inOut <- ifelse(dat_ne$idOcc %in% habitatIn$habitatInId, hb[hb == "Freshwater/Terrestrial"], hb[hb != "Marine"])
+    # dat_ne$inOut <- ifelse(dat_ne$idOcc %in% habitatIn$habitatInId, hb[hb == "Freshwater/Terrestrial"], hb[hb != "Freshwater/Terrestrial"])
     dat_ne$inOut <- ifelse(dat_ne$idOcc %in% habitatIn$habitatInId, hb[hb == input$habitat.gbif], hb[hb != input$habitat.gbif])
     
     dat_neId <- dat_ne$inOut
@@ -108,6 +105,7 @@ observe({
     # Create complete file that will download object
     # dat_ne <- cbind(tax_key$scientificName, dat_ne, dat_neId)
     temp_dat_ne$dat_ne <- cbind(tax_key$scientificName, dat_ne, dat_neId)
+    colnames(temp_dat_ne$dat_ne)[1] <- "scientificName"
     
     # Plot map
     output$myMap <- renderLeaflet({
@@ -121,7 +119,6 @@ observe({
     
     # Create object only with IN habitat, in order to calculate AOO and EOO
     temp_habitatIn$habitatIn <- habitatIn[ ,1:2]
-    
     
     # Extract min, max, and mean elevation for the species elevation 
     elev <- extract(r, habitatIn[ ,1:2]) %>% 

@@ -3,6 +3,7 @@
 #-------#
 
 - Aggiungere altri database per vedere le occurrences (e.s. bold, ncbi, museo barcellona)
-
+- Add gbif ID into the download file with the occurrences
+- Add biomonitoR Plot
 
 

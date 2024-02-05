@@ -50,3 +50,10 @@ rsconnect/
 
 # Own files
 toDO
+custom_dictio.aff
+custom_dictio.dic
+server.R
+ui.R
+01_Taxonomy.R
+02_Maps_v2.R
+03_biomonitoR.R

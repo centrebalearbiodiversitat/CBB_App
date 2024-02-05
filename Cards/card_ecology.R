@@ -12,6 +12,7 @@ accordion_ecology <- accordion(open = FALSE,
   accordion_panel("Diveristy indices", # icon = bsicons::bs_icon("menu-app"), 
                   
                   layout_columns(col_widths = c(12, 6, 6, 4, 4),
+                                 
                   # 1. Description of the sub panel
                          markdown("A diversity index is a quantitative measure that 
                                   reflects how many different types (e.g., species) 
@@ -37,7 +38,7 @@ accordion_ecology <- accordion(open = FALSE,
                   conditionalPanel(condition = "input['com.run.button.bior'] % 2 == 1",
                                    uiOutput("dowButtonBiorComp"))
                   
-                  ),
+                  )
                           
   ),
   
@@ -98,7 +99,7 @@ accordion_ecology <- accordion(open = FALSE,
                   ),
   
   # Accumulation curves ----
-  accordion_panel("Accumulation curves", #icon = bsicons::bs_icon("sliders"),
+  accordion_panel("Accumulation curves", 
                   layout_columns(col_widths = c(12, 12, 12, 12),
                                  
                                  # 1. Description of the sub panel
@@ -131,8 +132,8 @@ accordion_ecology <- accordion(open = FALSE,
                   ),
   
   # Rarefaction curves ----
-  accordion_panel("Rarefaction curves", #icon = bsicons::bs_icon("sliders"),
-                  layout_columns(col_widths = c(12, 8),
+  accordion_panel("Rarefaction curves", 
+                  layout_columns(col_widths = c(12, 12, 8),
                                  
                                  # 1. Description of the sub panel
                                  markdown("Rarefaction is a technique to assess species richness 
@@ -151,7 +152,7 @@ accordion_ecology <- accordion(open = FALSE,
                                                          "Taxa" = "Taxa"),
                                              selected = "Family"),
                                  
-                                 # 2. Run button for Rarefaction curves
+                                 # 3. Run button for Rarefaction curves
                                  actionButton("rar.run.button.bior", markdown("Rar. Curves"))
                                  )
                   )
@@ -175,7 +176,7 @@ cards.ecology <- list(
          sidebar = sidebar(width = 400, # sidebar width
            
            # Import file    
-           layout_columns(col_widths = c(12, 12, 12, 12),
+           layout_columns(col_widths = c(12, 12, 12, 12, 12),
           
                           # 1. Load biomonitoR file
                           fileInput("fileBr_taxa", markdown("##### Chose TAXA .csv"),
@@ -198,7 +199,6 @@ cards.ecology <- list(
                           
                           markdown("Download the template for biomonitoR TAXA table from 
                                    [here](https://minhaskamal.github.io/DownGit/#/home?url=https://github.com/centrebalearbiodiversitat/CBB_App/blob/main/data/template_biomonitoR.csv).")
-                          
                           ),
            
            # Drop-down menu

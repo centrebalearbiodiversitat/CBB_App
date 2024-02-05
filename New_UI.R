@@ -3,7 +3,7 @@
 #-------------------------------#
 
 # Load libraries
-pacman::p_load(bslib, data.table, DT, jsonlite, leaflet, shiny, tidyverse, 
+pacman::p_load(bslib, CoordinateCleaner, data.table, DT, jsonlite, leaflet, shiny, tidyverse, 
                rgbif, sf, biomonitoR, vegan, openxlsx, red, rredlist, plotly,
                terra)
 
@@ -108,15 +108,17 @@ ui <- page_navbar(
 )
 
 server <- function(input, output, session) {
+  
   # Taxonomy -------------------------------------------------------------------
   source("./Server/01_Taxonomy_v2.R", local = T)
   
   # Maps -----------------------------------------------------------------------
-  source("./Server/02_Maps_v2.R", local = T)
+  source("./Server/02_Maps_v3.R", local = T)
   
   # biomonitoR -----------------------------------------------------------------
   source("./Server/03_biomonitoR_v2.R", local = T)
-}
+
+  }
 
 shinyApp(ui, server)
 

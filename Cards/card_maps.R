@@ -30,7 +30,8 @@ cards.maps <- list(
                           # Select the habitat of the taxon to remove occurrence outside the selected
                           # habitat
                           selectInput("habitat.gbif", markdown("##### Taxon Habitat"), 
-                                      choices = c("Freshwater/Terrestrial" = "fw", "Marine" = "mar")),
+                                      choices = c("Freshwater/Terrestrial" = "Freshwater/Terrestrial", 
+                                                  "Marine" = "Marine")),
                           
                           textInput(inputId = "IUCNKey", label = markdown("##### IUCN Key"), value = "")
                           
@@ -38,11 +39,9 @@ cards.maps <- list(
            
            # Button to plot the map
            layout_columns(col_widths = c(6, 6, 4),
-                          actionButton("gbif.map.button", markdown("Map and Stats"),
-                                       style = "padding:6px; font-size:90%"),
+                          actionButton("gbif.map.button",  label = "Map and Stats"),
                           
-                          actionButton("aoo.button", markdown("IUCN Info"),
-                                       style = "padding:6px; font-size:90%"),
+                          actionButton("aoo.button", label = "IUCN Info"), # style = "font-size:90%"
                           uiOutput("downloadButtonOCC")           
                           )
          ),

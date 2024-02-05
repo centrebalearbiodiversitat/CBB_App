@@ -37,7 +37,7 @@ cards.taxonomy <- list(
            layout_columns(col_widths = c(4, 4),
                            
                            # Button to run the taxonomic check
-                           actionButton("taxa.run.button", markdown("**Run**")),
+                           actionButton("taxa.run.button", markdown("Run")),
                            
                            # Download button
                            uiOutput("downloadButton")
