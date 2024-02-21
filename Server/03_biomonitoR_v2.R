@@ -5,7 +5,8 @@
 # Temporaty files --------------------------------------------------------------
 
 temp_br_taxa <- reactiveValues(df_br_taxa = NULL) # <- Store .csv taxa biomonitoR
-temp_br_agr <- reactiveValues(df_br_agr = NULL) # <- Store .csv reference DB biomonitoR
+temp_br_as <- reactiveValues(df_br_as = NULL) # <- Results of as_biomonitor
+temp_br_agr <- reactiveValues(df_br_agr = NULL) # <- Results of aggregate_taxa
 temp_br_info <- reactiveValues(df_br_info = NULL) # <- General Info about the community
 temp_br_index <- reactiveValues(df_br_index = NULL) # <- Store .csv reference DB biomonitoR
 temp_br_rich <- reactiveValues(df_br_rich = NULL) # <- Store .csv reference DB biomonitoR
@@ -54,14 +55,14 @@ observeEvent(input$div.run.button.biorPrep, {
       refdb.cust <- fread(input$fileBr_refdb$datapath)
 
       # Perform as_biomonitor and aggregate_taxa
-      data_bio <- as_biomonitor(temp_br_taxa$df_br_taxa, dfref = refdb.cust)
-      temp_br_agr$df_br_agr <- aggregate_taxa(data_bio)
+      temp_br_as$df_br_as <- as_biomonitor(temp_br_taxa$df_br_taxa, dfref = refdb.cust)
+      temp_br_agr$df_br_agr <- aggregate_taxa(temp_br_as$df_br_as)
       
     } else {
 
       # Perform as_biomonitor and aggregate_taxa
-      data_bio <- as_biomonitor(temp_br_taxa$df_br_taxa, group = input$refdb.group)
-      temp_br_agr$df_br_agr <- aggregate_taxa(data_bio)
+      temp_br_as$df_br_as <- as_biomonitor(temp_br_taxa$df_br_taxa, group = input$refdb.group)
+      temp_br_agr$df_br_agr <- aggregate_taxa(temp_br_as$df_br_as)
       
     }
 
@@ -89,10 +90,10 @@ observeEvent(input$div.run.button.biorPrep, {
 output$uiBiorTable <- renderUI({
   req(temp_br_taxa$df_br_taxa)
   
-       card(card_header("Input table"), 
-            full_screen = FALSE, fill = FALSE, 
-            DT::DTOutput("inputDataframe_bioR")
-            )
+  card(card_header("Input table"), 
+       full_screen = FALSE, fill = FALSE, 
+       DT::DTOutput("inputDataframe_bioR"))
+  
 })
 
 # Create a table containing general information about the uploaded data set
@@ -105,13 +106,47 @@ output$generalInfo_bioR <- DT::renderDataTable({
 options = (list(scrollX = TRUE, paging = FALSE, searching = FALSE)),
 rownames = FALSE)
 
+output$commPlot1 <- renderPlotly({
+  req(temp_br_info$df_br_info)
+  
+  plot(temp_br_as$df_br_as,
+       parent = "Family",
+       child = "Species",
+       type = "abundance",
+       remove_empty_child = FALSE)
+})
+
+output$commPlot2 <- renderPlotly({
+  req(temp_br_info$df_br_info)
+  
+  plot(temp_br_agr$df_br_agr,
+       parent = "Family",
+       child = "Species",
+       type = "abundance",
+       remove_empty_child = FALSE)
+})
+
+
+
+
 output$uiBiorInfo <- renderUI({
   
   req(temp_br_info$df_br_info)
   
-  card(card_header("General info"),
-       full_screen = FALSE, fill = FALSE,
-       DT::dataTableOutput("generalInfo_bioR"))
+  layout_columns(col_widths = c(6, 6),
+                 card(card_header("General info"),
+                      full_screen = FALSE, fill = FALSE,
+                      DT::dataTableOutput("generalInfo_bioR")
+                      ),
+                 
+                 card(card_header("Community plot"), 
+                      full_screen = FALSE, fill = FALSE, 
+                      tabsetPanel(
+                        tabPanel("Pie", plotlyOutput("commPlot1")),
+                        tabPanel("Bar", plotlyOutput("commPlot2"))
+                        )
+                      )
+                 )
 })
 
 # Index calculation ------------------------------------------------------------

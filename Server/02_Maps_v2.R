@@ -218,7 +218,7 @@ output$uiAooEoo <- renderUI({
                       full_screen = FALSE, fill = FALSE,
                       DT::dataTableOutput(outputId = "iucnCat")
                       ),
-                 card(card_header("IUCN habitat (global evaluation)"), height = "70%",
+                 card(card_header("IUCN habitat"), height = "70%",
                       full_screen = FALSE, fill = FALSE,
                       DT::dataTableOutput(outputId = "iucnHabitat")
                       )
