@@ -448,7 +448,7 @@ output$dowDataBiorIndex <- downloadHandler(
     paste("CBB_Div_Index_", Sys.Date(), ".csv", sep = "")
   },
   content = function(file) {
-    write.csv(temp_br_index$df_br_index, file, row.names = FALSE, 
+    write.csv(temp_br_index$df_br_index, file, row.names = TRUE, 
               fileEncoding = "UTF-8")
   }
 )
@@ -459,7 +459,7 @@ output$dowDataBiorComp <- downloadHandler(
     paste("CBB_Comp_", Sys.Date(), ".csv", sep = "")
   },
   content = function(file) {
-    write.csv(temp_br_rich$df_br_rich, file, row.names = FALSE, 
+    write.csv(temp_br_rich$df_br_rich, file, row.names = TRUE, 
               fileEncoding = "UTF-8")
   }
 )
