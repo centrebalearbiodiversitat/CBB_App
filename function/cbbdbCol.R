@@ -24,7 +24,7 @@ cbbdbCol <- function(x){
     
     # Json query
     json.sp <- gsub(" ", "%20", sp.1)
-    json <- fromJSON(paste0("https://api.checklistbank.org/dataset/9923/nameusage/search?content=SCIENTIFIC_NAME&q=", json.sp, "&type=EXACT&offset=0&limit=50"))
+    json <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/nameusage/search?content=SCIENTIFIC_NAME&q=", json.sp, "&type=EXACT&offset=0&limit=50"))
     
     
     # Species not found into COL database
@@ -95,8 +95,8 @@ cbbdbCol <- function(x){
         classificationID <- classification$id[classification$rank == rank]
         
         # Classification rank into the list 
-        # Api COL: https://api.checklistbank.org/dataset/9923/taxon/8TN37
-        classificationLower <- fromJSON(paste0("https://api.checklistbank.org/dataset/9923/taxon/", classificationID))
+        # Api COL: https://api.checklistbank.org/dataset/309796/taxon/8TN37
+        classificationLower <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/taxon/", classificationID))
         
         taxonLower <- ch0_to_Na(classificationLower$name$scientificName) 
         authorLower <- ch0_to_Na(classificationLower$name$authorship)
@@ -105,8 +105,8 @@ cbbdbCol <- function(x){
         # habitat <- ch0_to_Na(classificationLower$environments)
         
         # Higher classification compared to the rank into the list 
-        # Api COL: https://api.checklistbank.org/dataset/9923/taxon/8TN37/classification
-        classificationHigher <- fromJSON(paste0("https://api.checklistbank.org/dataset/9923/taxon/", classificationID, "/classification"))
+        # Api COL: https://api.checklistbank.org/dataset/309796/taxon/8TN37/classification
+        classificationHigher <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/taxon/", classificationID, "/classification"))
         
         # Taxon classification
         taxonHigherKingdom <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "kingdom"])
@@ -200,8 +200,8 @@ cbbdbCol <- function(x){
         classificationID <- classification$id[classification$rank == rank]
         
         # Classification rank into the list 
-        # Api COL: https://api.checklistbank.org/dataset/9923/taxon/8TN37
-        classificationLower <- fromJSON(paste0("https://api.checklistbank.org/dataset/9923/taxon/", classificationID))
+        # Api COL: https://api.checklistbank.org/dataset/309796/taxon/8TN37
+        classificationLower <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/taxon/", classificationID))
         
         taxonLower <- ch0_to_Na(classificationLower$name$scientificName) 
         authorLower <- ch0_to_Na(classificationLower$name$authorship)
@@ -210,8 +210,8 @@ cbbdbCol <- function(x){
         # habitat <- ch0_to_Na(classificationLower$environments)
 
         # Higher classification compared to the rank into the list 
-        # Api COL: https://api.checklistbank.org/dataset/9923/taxon/8TN37/classification
-        classificationHigher <- fromJSON(paste0("https://api.checklistbank.org/dataset/9923/taxon/", classificationID, "/classification"))
+        # Api COL: https://api.checklistbank.org/dataset/309796/taxon/8TN37/classification
+        classificationHigher <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/taxon/", classificationID, "/classification"))
         
         # Taxon classification
         taxonHigherKingdom <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "kingdom"])
@@ -305,13 +305,13 @@ cbbdbCol <- function(x){
         json.syn <- NULL
         tryCatch({
           # Attempt to retrieve JSON data
-          json.syn <- fromJSON(paste0("https://api.checklistbank.org/dataset/9923/synonym/", id.sp))
+          json.syn <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/synonym/", id.sp))
         }, error = function(e) {})
         
-        #json.syn <- fromJSON(paste0("https://api.checklistbank.org/dataset/9923/synonym/", id.sp))
+        #json.syn <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/synonym/", id.sp))
         
         if(!is.null(json.syn)){
-          json.syn.acc <- fromJSON(paste0("https://api.checklistbank.org/dataset/9923/nameusage/search?content=SCIENTIFIC_NAME&q=", gsub(" ", "%20", json.syn$accepted$name$scientificName), "&type=EXACT&offset=0&limit=1"))
+          json.syn.acc <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/nameusage/search?content=SCIENTIFIC_NAME&q=", gsub(" ", "%20", json.syn$accepted$name$scientificName), "&type=EXACT&offset=0&limit=1"))
           
           
           classification <- as.data.frame(json.syn.acc$result$classification)
@@ -321,8 +321,8 @@ cbbdbCol <- function(x){
           classificationID <- classification$id[classification$rank == rank][1]
           
           # Classification rank into the list 
-          # Api COL: https://api.checklistbank.org/dataset/9923/taxon/8TN37
-          classificationLower <- fromJSON(paste0("https://api.checklistbank.org/dataset/9923/taxon/", classificationID))
+          # Api COL: https://api.checklistbank.org/dataset/309796/taxon/8TN37
+          classificationLower <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/taxon/", classificationID))
           
           taxonLower <- ch0_to_Na(classificationLower$name$scientificName) 
           authorLower <- ch0_to_Na(classificationLower$name$authorship)
@@ -331,8 +331,8 @@ cbbdbCol <- function(x){
           # habitat <- ch0_to_Na(classificationLower$environments)
           
           # Higher classification compared to the rank into the list 
-          # Api COL: https://api.checklistbank.org/dataset/9923/taxon/8TN37/classification
-          classificationHigher <- fromJSON(paste0("https://api.checklistbank.org/dataset/9923/taxon/", classificationID, "/classification"))
+          # Api COL: https://api.checklistbank.org/dataset/309796/taxon/8TN37/classification
+          classificationHigher <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/taxon/", classificationID, "/classification"))
           
           # Taxon classification
           taxonHigherKingdom <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "kingdom"])

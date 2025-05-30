@@ -2,7 +2,6 @@
 # Maps #
 #------#
 
-# IUCN KEY: "adfd090eb40f601150b22d9676a3c228c1190bd7af733ac4e7172d683e31e1b4"
 # coordinateCleaner tutorial: https://ropensci.github.io/CoordinateCleaner/articles/Cleaning_GBIF_data_with_CoordinateCleaner.html
 
 # Habitat names
