@@ -65,7 +65,7 @@ cards.home <- list(
                         ),
       
       layout_columns(col_widths = c(-4, 4, -4),
-                     card_image(file = "./www/img/logo-cbb.png", fill = FALSE, width = "80%"))
+                     card_image(file = "./www/img/logo_cbb.png", fill = FALSE, width = "80%"))
       
     ),
     
