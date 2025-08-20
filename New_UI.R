@@ -57,9 +57,9 @@ ui <- page_navbar(
   theme = bs_theme(version = 5, 
                    bg = "#FFF",
                    fg = "#101010",
-                   primary = "#ef8957",
-                   secondary = "#34bbcc",
-                   success = "#8dc47b",
+                   primary = "#be4358",
+                   secondary = "#00acba",
+                   success = "#7ebc00",
                    base_font = font_google("Inter"),
                    code_font = font_google("JetBrains Mono"),
                    font_scale = 0.8), # Bootstrap version and theme: bootswatch = "superhero"
