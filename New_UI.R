@@ -55,16 +55,25 @@ link_git <- tags$a(
 ui <- page_navbar(
   
   theme = bs_theme(version = 5, 
-                   bg = "#FFF",
+                   bg= "#FFF",
                    fg = "#101010",
-                   primary = "#be4358",
-                   secondary = "#00acba",
+                   primary = "#00acba",
+                   secondary = "#be4358",
                    success = "#7ebc00",
                    base_font = font_google("Inter"),
                    code_font = font_google("JetBrains Mono"),
-                   font_scale = 0.8), # Bootstrap version and theme: bootswatch = "superhero"
+                   font_scale = 0.8
+                   ), # Bootstrap version and theme: bootswatch = "superhero"
   
-  title = "Cbb App", # title of the app
+  header = tags$style(HTML("
+    /* Hover effect for navbar links */
+    .navbar .nav-link:hover {
+      background-color: #00acba !important; /* blue */
+      color: #ffffff !important;            /* text color while hovering */
+      border-radius: 6px;                    /* rounded corners */
+    }")),
+  
+  title = "BioDivers", # title of the app
   
   # Home panel ----
   nav_panel(title = "Home",
