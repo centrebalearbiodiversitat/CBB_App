@@ -33,6 +33,43 @@ cards.taxonomy <- list(
                                    "Specify COL" = "Specify_COL",
                                    "Specify WORMS" = "Specify_WORMS")),
            
+           
+           numericInput(
+             "dataset_number",
+             label = tags$span(
+               style = "font-size: 1.25em;",
+               # match Markdown #####
+               "COL ",
+               tags$a(
+                 href = "https://www.checklistbank.org/",
+                 target = "_blank",
+                 style = "color: #00acba;",
+                 # look like a link
+                 "ChecklistBank"
+               ),
+               "dataset number"
+             ),
+             value = 309796,
+             min = 1
+           ), 
+           
+           tags$head(tags$style(HTML(
+             "#dataset_number
+                                     {color: grey;  /* default grey */}"
+           )),
+           # JavaScript to change color when user types
+           tags$script(
+             HTML(
+               "$(document).on('input', '#dataset_number', function() {
+      if ($(this).val() == '309796' || $(this).val() == '') {
+        $(this).css('color', 'grey');
+      } else {
+        $(this).css('color', 'black');
+      }});"
+             )
+           )),
+      
+   
            # Buttons
            layout_columns(col_widths = c(4, 4),
                            
