@@ -126,10 +126,10 @@ cards.home <- list(
           markdown(
             "## __Contact__  
             
-        BioDivers has been created by the CBB Data Management Unit.  
-        For any bug reports or feature requests, please don't hesitate to reach out to
+        BioDivers has been created by the CBB Data Management Unit. For any bug 
+        reports or feature requests, please don't hesitate to reach out to
         [__T. C.__](mailto:t.cancellario@uib.eu), 
-        [__T. G.__](mailto:t.cancellario@uib.eu) or [__A.J.F.__](mailto:antoni-josep.far@uib,cat).  
+        [__T. G.__](mailto:t.cancellario@uib.eu) or [__T.F.__](mailto:antoni-josep.far@uib,cat).  
 
         Alternatively, you can submit a pull request directly on the project's
         [__GitHub__](https://github.com/centrebalearbiodiversitat/CBB_dataAnalysis/tree/main/CBB_Shiny)."
