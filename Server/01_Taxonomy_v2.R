@@ -56,7 +56,15 @@ observeEvent(input$taxa.run.button, {
       
       # Select function to retrieve taxonomy in CBB_DB format (DB: COL)
       if(input$taxon.an == "CBB_DB_COL") {
-        temp_df.2$df_data <- cbbdbCol(spTaxa)
+        
+        dataset_number <- ifelse(input$dataset_number == "" | is.null(input$dataset_number),
+                                 309796, 
+                                 as.numeric(input$dataset_number))
+        
+        temp_df.2$df_data <- cbbdbCol(
+          spTaxa,
+          dataset_number = dataset_number
+        )
       }
       
       # Select function to retrieve taxonomy in Specify format (DB: WORMS)
@@ -78,6 +86,11 @@ observeEvent(input$taxa.run.button, {
   
 })
 
+observe({
+  if (is.na(input$dataset_number)) {
+    updateNumericInput(session, "dataset_number", value = 309796)
+  }
+})
 
 # Show table whit reviewed taxonomy information data (temp_df.2)
 output$dataTaxonomy <- DT::renderDataTable({
