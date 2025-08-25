@@ -16,6 +16,7 @@ source("./function/cbbdbCol.R")
 source("./function/ch0_to_Na.R")
 source("./function/specifyTaxon.R")
 source("./function/wormsTaxon.R")
+source("./function/infoIconTooltip.R")
 
 #------#
 # Cards ------------------------------------------------------------------------
