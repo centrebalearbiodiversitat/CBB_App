@@ -74,7 +74,14 @@ observeEvent(input$taxa.run.button, {
       
       output$downloadButton <- renderUI({
         downloadButton("downloadData", "Download Dataset",
-                       style = "padding:6px; font-size:80%")
+                       style = "display: flex;
+                       align-items: center;   /* vertical centering */
+                       justify-content: center; /* horizontal centering */
+                       padding:6px;
+                       font-weight: bold;
+                       font-size:100%; 
+                       height:63px;"
+                       )
       })
       
     } else{

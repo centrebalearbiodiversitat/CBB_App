@@ -21,7 +21,7 @@
 
 # x: vector of taxa
 
-specifyTaxon <- function(x){
+specifyTaxon <- function(x, dataset_number = 309796){
   
   colList <- list(colNames = data.frame(),
                   colStatus = data.frame())
@@ -33,7 +33,7 @@ specifyTaxon <- function(x){
                  
                  # Json query
                  json.sp <- gsub(" ", "%20", sp.1)
-                 json <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/nameusage/search?content=SCIENTIFIC_NAME&q=", json.sp, "&type=EXACT&offset=0&limit=50"))
+                 json <- fromJSON(paste0("https://api.checklistbank.org/dataset/", dataset_number,"/nameusage/search?content=SCIENTIFIC_NAME&q=", json.sp, "&type=EXACT&offset=0&limit=50"))
                  
                  if(isTRUE(json$empty)){
                    
@@ -141,7 +141,7 @@ specifyTaxon <- function(x){
                      json.syn <- NULL
                      tryCatch({
                        # Attempt to retrieve JSON data
-                       json.syn <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/synonym/", id.sp))
+                       json.syn <- fromJSON(paste0("https://api.checklistbank.org/dataset/", dataset_number,"/synonym/", id.sp))
                      }, error = function(e) {})
                      
                      #json.syn <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/synonym/", id.sp))
@@ -149,7 +149,7 @@ specifyTaxon <- function(x){
                      
                      if(!is.null(json.syn)){
                        
-                       json.syn.acc <- fromJSON(paste0("https://api.checklistbank.org/dataset/309796/nameusage/search?content=SCIENTIFIC_NAME&q=", gsub(" ", "%20", json.syn$accepted$name$scientificName), "&type=EXACT&offset=0&limit=1"))
+                       json.syn.acc <- fromJSON(paste0("https://api.checklistbank.org/dataset/", dataset_number,"/nameusage/search?content=SCIENTIFIC_NAME&q=", gsub(" ", "%20", json.syn$accepted$name$scientificName), "&type=EXACT&offset=0&limit=1"))
                        
                        classification <- as.data.frame(json.syn.acc$result$classification)
                        rank <- classification$rank[nrow(classification)]

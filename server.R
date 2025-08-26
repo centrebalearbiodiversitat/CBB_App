@@ -11,8 +11,6 @@ server <- function(input, output, session) {
   
   # biomonitoR -----------------------------------------------------------------
   source("./Server/03_biomonitoR_v2.R", local = T)
-  # info icon-----------------------------------------------------
-  source("./function/infoIconTooltip.R")
 }
 
 
