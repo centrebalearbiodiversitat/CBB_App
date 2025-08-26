@@ -52,18 +52,20 @@ link_git <- tags$a(
 # UI ---------------------------------------------------------------------------
 #---#
 
+
 ui <- page_navbar(
   
   theme = bs_theme(version = 5, 
                    bg= "#FFF",
                    fg = "#101010",
                    primary = "#00acba",
-                   secondary = "#be4358",
-                   success = "#7ebc00",
+                   secondary = "#7ebc00",
+                   success = "#be4358",
                    base_font = font_google("Inter"),
                    code_font = font_google("JetBrains Mono"),
                    font_scale = 0.8
                    ), # Bootstrap version and theme: bootswatch = "superhero"
+  
   
   header = tags$style(HTML("
     /* Hover effect for navbar links */
@@ -129,5 +131,5 @@ server <- function(input, output, session) {
 
   }
 
-shinyApp(ui, server)
+shinyApp(ui, server, options = list(launch.browser = TRUE))
 
