@@ -6,7 +6,7 @@
 cards.taxonomy <- list(# Cards for taxonomy
   card(
     full_screen = FALSE,
-    card_header("Taxonomy"),
+
     
     # Sidebar ----
     layout_sidebar(
@@ -21,30 +21,46 @@ cards.taxonomy <- list(# Cards for taxonomy
         
         # Input file
         fileInput("file1",
-                  markdown("##### Chose CSV File"),
+                  label = tags$span(
+                    style = "font-size: 1.25em;font-weight: bold;",
+                    "Chose CSV File"),
                   accept = c(".csv")),
         
-        # Select taxa column where we want to perform the taxonomic check
+        # Select taxa column where we want to perform the taxonomic check 
         selectInput("text.db",
-                    markdown("##### Name of taxa column"),
-                    choices = NULL),
+                    label = tags$span(
+                      style = "font-size: 1.25em;font-weight: bold;",
+                      "Taxonomic list",
+                      infoIconTooltip(
+                        tooltipText = "Select the column name from your csv that contain the list of taxonomic levels (species name, genus name, family name...)."
+                        )
+                      ),
+                    choices = NULL
+                    ),
         
         # Select database to perform the taxonomy check
         selectInput(
           "taxon.an",
-          markdown("##### Choose taxonomy style"),
+          label = tags$span(
+            style = "font-size: 1.25em;font-weight: bold;",
+            "Choose taxonomy style ",
+            infoIconTooltip( 
+              tooltipText = "<b>Taxonomy COL</b>: Download extenden information of a given taxonomic level, including authors, source, origin, taxonomic level status, and environmental infromation from Catalogue of Life.<br><br>
+                     <b>Specify COL</b>: Download simplified taxonomic information of a given taxonomic level from Catalogue of Life.<br><br>
+                     <b>Specify WoRMS</b>: Download taxonomic and environmental information of a given taxonomic level from World Register of Marine Species."
+            )
+          ),
           choices = c(
-            "CBB DB COL" = "CBB_DB_COL",
+            "Taxonomy COL" = "CBB_DB_COL",
             "Specify COL" = "Specify_COL",
-            "Specify WORMS" = "Specify_WORMS"
+            "Specify WoRMS" = "Specify_WORMS"
           )
         ),
-        
         
         numericInput(
           "dataset_number",
           label = tags$span(
-            style = "font-size: 1.25em;",
+            style = "font-size: 1.25em;font-weight: bold;",
             "COL ",
             tags$a(
               href = "https://www.checklistbank.org/",
@@ -54,9 +70,9 @@ cards.taxonomy <- list(# Cards for taxonomy
             ),
             "dataset key",
             infoIconTooltip(
-              tooltipText = "Use only when a Catalogue of Life download is performed.<br><br>
+              tooltipText = "Use only when <b>Taxonomy COL</b> or <b>Specify COL</b> download is performed.<br><br>
                      The dataset key is a unique identifier assigned to a COL checklist or dataset within ChecklistBank.
-                     It is used to reference, access, and download data from the specified version of a COL dataset."
+                     It is used to reference, access, and download data <b>from the specified version of a COL dataset</b>."
             )
           ),
           value = 309796,
@@ -85,7 +101,17 @@ layout_columns(
   col_widths = c(4, 4),
   
   # Button to run the taxonomic check
-  actionButton("taxa.run.button", markdown("Run")),
+  actionButton("taxa.run.button", "Run",
+               width = "100%", 
+               style = "
+               display: flex;
+               align-items: center;     /* vertical centering */
+               justify-content: center; /* horizontal centering */
+               font-size: 100%;
+               font-weight: bold;
+               height: 63px;
+               "
+               ),
   
   # Download button
   uiOutput("downloadButton")
