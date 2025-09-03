@@ -58,7 +58,7 @@ observeEvent(input$taxa.run.button, {
       if(input$taxon.an == "CBB_DB_COL") {
         
         dataset_number <- ifelse(input$dataset_number == "" | is.null(input$dataset_number),
-                                 309796, 
+                                 311872, 
                                  as.numeric(input$dataset_number))
         
         temp_df.2$df_data <- cbbdbCol(
@@ -95,7 +95,7 @@ observeEvent(input$taxa.run.button, {
 
 observe({
   if (is.na(input$dataset_number)) {
-    updateNumericInput(session, "dataset_number", value = 309796)
+    updateNumericInput(session, "dataset_number", value = 311872)
   }
 })
 
