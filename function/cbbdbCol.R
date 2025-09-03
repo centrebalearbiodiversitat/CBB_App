@@ -338,14 +338,14 @@ cbbdbCol <- function(x, dataset_number = 311872){
       
       }
     
-    colNames <- rbind(colNames, colNames.1)
+    colNames <- rbind(colNames, colNames.1),
     
     # print(paste(i, "---- of ----", length(x)))
     
     # Increment the progress bar, and update the detail text.
      incProgress(1/length(x), detail = paste("Doing:", i))
     
-  }
+  
    ) 
   
   return(colNames)
