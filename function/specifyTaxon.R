@@ -21,7 +21,7 @@
 
 # x: vector of taxa
 
-specifyTaxon <- function(x, dataset_number = 309796){
+specifyTaxon <- function(x, dataset_number = 311872){
   
   colList <- list(colNames = data.frame(),
                   colStatus = data.frame())
