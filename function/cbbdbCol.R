@@ -5,365 +5,127 @@
 # 
 # i=1
 
-cbbdbCol <- function(x, dataset_number = 311872){
+cbbdbCol <- function(x, dataset_number = 312092) {
   
-  colNames <- data.frame()
+  resolved_df <- data.frame()
+  ambiguous_list <- list()
   
-  withProgress(message = "Downloading taxonomy", value = 0,
-  
-  
-  for(i in 1:length(x)){
+  withProgress(message = "Downloading taxonomy", value = 0, {
     
-    # Taxonomy source
-    taxonSource <- "Catalogue of Life"
-    
-    # Taxon origin
-    taxonOrigin <- "database"
-    
-    # Species i of the list
-    sp.1 <- x[i]
-    
-    # Json query
-    json.sp <- gsub(" ", "%20", sp.1)
-    json <- fromJSON(paste0("https://api.checklistbank.org/dataset/",dataset_number,"/nameusage/search?content=SCIENTIFIC_NAME&q=", json.sp, "&type=EXACT&offset=0&limit=50"))
-    
-    
-    # Species not found into COL database
-    if(isTRUE(json$empty)){
+    for(i in seq_along(x)) {
       
-      colNames.1 <- data.frame(originalName = sp.1,
-                               colNamesAccepted = "Not found",
-                               colID = "Not found",
-                               Kingdom = "Not found",
-                               kingdomAuthor = "Not found",
-                               Phylum = "Not found",
-                               phylumAuthor = "Not found",
-                               Class = "Not found",
-                               classAuthor = "Not found",
-                               Order = "Not found",
-                               orderAuthor = "Not found",
-                               Family = "Not found",
-                               familyAuthor = "Not found",
-                               Genus = "Not found",
-                               genusAuthor = "Not found",
-                               Species = "Not found",
-                               speciesAuthor = "Not found",
-                               Subspecies = "Not found",
-                               subspeciesAuthor = "Not found",
-                               Variety = "Not found",
-                               varietyAuthor = "Not found",
-                               originalStatus = "Not found",
-                               taxonRank = "Not Found",
-                               brackish = "Not Found",
-                               freshwater = "Not Found",
-                               marine = "Not Found",
-                               terrestrial = "Not Found")
-    } else {
+      sp.1 <- x[i]
+      json.sp <- gsub(" ", "%20", sp.1)
+      json <- fromJSON(paste0(
+        "https://api.checklistbank.org/dataset/", dataset_number,
+        "/nameusage/search?content=SCIENTIFIC_NAME&q=", json.sp,
+        "&type=EXACT&offset=0&limit=50"
+      ))
       
-      # Check name status
-      status <- json$result$usage$status
-      acc <- grepl("accepted", status)
-
-      
-      if(length(status) > 1) {
+      # Species not found
+      if(isTRUE(json$empty)) {
+        resolved_df <- rbind(resolved_df,
+                             data.frame(originalName = sp.1,
+                                        colNamesAccepted = "Not found",
+                                        colID = "Not found",
+                                        Kingdom = "Not found",
+                                        kingdomAuthor = "Not found",
+                                        Phylum = "Not found",
+                                        phylumAuthor = "Not found",
+                                        Class = "Not found",
+                                        classAuthor = "Not found",
+                                        Order = "Not found",
+                                        orderAuthor = "Not found",
+                                        Family = "Not found",
+                                        familyAuthor = "Not found",
+                                        Genus = "Not found",
+                                        genusAuthor = "Not found",
+                                        Species = "Not found",
+                                        speciesAuthor = "Not found",
+                                        Subspecies = "Not found",
+                                        subspeciesAuthor = "Not found",
+                                        Variety = "Not found",
+                                        varietyAuthor = "Not found",
+                                        originalStatus = "Not found",
+                                        taxonRank = "Not Found",
+                                        brackish = "Not Found",
+                                        freshwater = "Not Found",
+                                        marine = "Not Found",
+                                        terrestrial = "Not Found"))
+      } else {
         
-        # acc <- colStatus.1$colStatus == "accepted"
-        # acc <- grepl("accepted", colStatus.1$colStatus)
+        status <- json$result$usage$status
+        acc <- grepl("accepted", status)
         
-        
-        if (all(unique(acc)) | length(which(acc == "TRUE")) > 1) {
-          showNotification(paste("The taxon", sp.1, "has more then one accepted name"), 
-                           type = "error",
-                           duration = NULL)
-          # print("Houston, we have a problem...")
-          break
+        # Multiple accepted names
+        if(length(which(acc)) > 1) {
+          ambiguous_list[[sp.1]] <- json$result$usage$id[acc]
+          next
         }
         
-        classification <- as.data.frame(json$result$classification[which(json$result$usage$status == status[acc])])
-        rank <- classification$rank[nrow(classification)]
-        
-        classificationID <- classification$id[classification$rank == rank]
-        
-        # Classification rank into the list 
-        # Api COL: https://api.checklistbank.org/dataset/9923/taxon/8TN37
-        classificationLower <- fromJSON(paste0("https://api.checklistbank.org/dataset/",dataset_number,"/taxon/", classificationID))
-        
-        taxonLower <- ch0_to_Na(classificationLower$name$scientificName) 
-        authorLower <- ch0_to_Na(classificationLower$name$authorship)
-        
-        # Habitat
-        # habitat <- ch0_to_Na(classificationLower$environments)
-        
-        # Higher classification compared to the rank into the list 
-        # Api COL: https://api.checklistbank.org/dataset/9923/taxon/8TN37/classification
-        classificationHigher <- fromJSON(paste0("https://api.checklistbank.org/dataset/",dataset_number,"/taxon/", classificationID, "/classification"))
-        
-        # Taxon classification
-        taxonHigherKingdom <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "kingdom"])
-        authorHigherKingdom <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "kingdom"])
-        taxonHigherPhylum <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "phylum"])
-        authorHigherPhylum <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "phylum"])
-        taxonHigherClass <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "class"])
-        authorHigherClass <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "class"])
-        taxonHigherOrder <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "order"])
-        authorHigherOrder <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "order"])
-        taxonHigherFamily <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "family"])
-        authorHigherFamily <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "family"])
-        taxonHigherGenus <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "genus"])
-        authorHigherGenus <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "genus"])
-        taxonHigherSpecies <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "species"])
-        authorHigherSpecies <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "species"])
-        taxonHigherSubspecies <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "subspecies"])
-        authorHigherSubspecies <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "subspecies"])
-        taxonHigherVariety <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "variety"])
-        authorHigherVariety <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "variety"])
-        
-        
-        # Dataframe to add to the main one
-        colNames.1 <- data.frame(originalName = sp.1,
-                                 colNamesAccepted = classification$name[classification$rank == rank],
-                                 colID = classificationID,
-                                 Kingdom = ifelse(rank == "kingdom", taxonLower, taxonHigherKingdom),
-                                 kingdomAuthor = ifelse(rank == "kingdom", authorLower, authorHigherKingdom),
-                                 Phylum = ifelse(rank == "phylum", taxonLower, taxonHigherPhylum),
-                                 phylumAuthor = ifelse(rank == "phylum", authorLower, authorHigherPhylum),
-                                 Class = ifelse(rank == "class", taxonLower, taxonHigherClass),
-                                 classAuthor = ifelse(rank == "class", authorLower, authorHigherClass),
-                                 Order = ifelse(rank == "order", taxonLower, taxonHigherOrder),
-                                 orderAuthor = ifelse(rank == "order", authorLower, authorHigherOrder),
-                                 Family = ifelse(rank == "family", taxonLower, taxonHigherFamily),
-                                 familyAuthor = ifelse(rank == "family", authorLower, authorHigherFamily),
-                                 Genus = ifelse(rank == "genus", taxonLower, taxonHigherGenus),
-                                 genusAuthor = ifelse(rank == "genus", authorLower, authorHigherGenus),
-                                 Species = ifelse(rank == "species", word(taxonLower, -1), word(taxonHigherSpecies, -1)),
-                                 speciesAuthor = ifelse(rank == "species", authorLower, authorHigherSpecies),
-                                 Subspecies = ifelse(rank == "subspecies", word(taxonLower, -1), word(taxonHigherSubspecies, -1)),
-                                 subspeciesAuthor = ifelse(rank == "subspecies", authorLower, authorHigherSubspecies),
-                                 Variety = ifelse(rank == "variety", word(taxonLower, -1), word(taxonHigherVariety, -1)),
-                                 varietyAuthor = ifelse(rank == "variety", authorLower, authorHigherVariety),
-                                 originalStatus = json$result$usage[which(json$result$usage$status == status[acc]), ]$status, #ifelse(any(status %in% "accepted"), "accepted", "Many status"),
-                                 taxonRank = rank,
-                                 brackish = "brackish" %in% classificationLower$environments,
-                                 freshwater = "freshwater" %in% classificationLower$environments,
-                                 marine = "marine" %in% classificationLower$environments,
-                                 terrestrial = "terrestrial" %in% classificationLower$environments) %>% 
-          unique()
-      }
-
-        # any(): check if there are TRUE values in a string
-      
-      # Accepted names
-      if(length(status) == 1 && status == "accepted"){
-        
-        classification <- as.data.frame(json$result$classification)
-        rank <- classification$rank[nrow(classification)]
-        
-        # Lower classification ID
-        classificationID <- classification$id[classification$rank == rank]
-        
-        # Classification rank into the list 
-        # Api COL: https://api.checklistbank.org/dataset/9923/taxon/8TN37
-        classificationLower <- fromJSON(paste0("https://api.checklistbank.org/dataset/",dataset_number,"/taxon/", classificationID))
-        
-        taxonLower <- ch0_to_Na(classificationLower$name$scientificName) 
-        authorLower <- ch0_to_Na(classificationLower$name$authorship)
-        
-        # Habitat
-        # habitat <- ch0_to_Na(classificationLower$environments)
-        
-        # Higher classification compared to the rank into the list 
-        # Api COL: https://api.checklistbank.org/dataset/9923/taxon/8TN37/classification
-        classificationHigher <- fromJSON(paste0("https://api.checklistbank.org/dataset/",dataset_number,"/taxon/", classificationID, "/classification"))
-        
-        # Taxon classification
-        taxonHigherKingdom <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "kingdom"])
-        authorHigherKingdom <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "kingdom"])
-        taxonHigherPhylum <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "phylum"])
-        authorHigherPhylum <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "phylum"])
-        taxonHigherClass <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "class"])
-        authorHigherClass <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "class"])
-        taxonHigherOrder <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "order"])
-        authorHigherOrder <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "order"])
-        taxonHigherFamily <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "family"])
-        authorHigherFamily <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "family"])
-        taxonHigherGenus <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "genus"])
-        authorHigherGenus <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "genus"])
-        taxonHigherSpecies <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "species"])
-        authorHigherSpecies <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "species"])
-        taxonHigherSubspecies <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "subspecies"])
-        authorHigherSubspecies <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "subspecies"])
-        taxonHigherVariety <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "variety"])
-        authorHigherVariety <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "variety"])
-        
-        
-        # Dataframe to add to the main one
-        colNames.1 <- data.frame(originalName = sp.1,
-                                 colNamesAccepted = classification$name[classification$rank == rank],
-                                 colID = classificationID,
-                                 Kingdom = ifelse(rank == "kingdom", taxonLower, taxonHigherKingdom),
-                                 kingdomAuthor = ifelse(rank == "kingdom", authorLower, authorHigherKingdom),
-                                 Phylum = ifelse(rank == "phylum", taxonLower, taxonHigherPhylum),
-                                 phylumAuthor = ifelse(rank == "phylum", authorLower, authorHigherPhylum),
-                                 Class = ifelse(rank == "class", taxonLower, taxonHigherClass),
-                                 classAuthor = ifelse(rank == "class", authorLower, authorHigherClass),
-                                 Order = ifelse(rank == "order", taxonLower, taxonHigherOrder),
-                                 orderAuthor = ifelse(rank == "order", authorLower, authorHigherOrder),
-                                 Family = ifelse(rank == "family", taxonLower, taxonHigherFamily),
-                                 familyAuthor = ifelse(rank == "family", authorLower, authorHigherFamily),
-                                 Genus = ifelse(rank == "genus", taxonLower, taxonHigherGenus),
-                                 genusAuthor = ifelse(rank == "genus", authorLower, authorHigherGenus),
-                                 Species = ifelse(rank == "species", word(taxonLower, -1), word(taxonHigherSpecies, -1)),
-                                 speciesAuthor = ifelse(rank == "species", authorLower, authorHigherSpecies),
-                                 Subspecies = ifelse(rank == "subspecies", word(taxonLower, -1), word(taxonHigherSubspecies, -1)),
-                                 subspeciesAuthor = ifelse(rank == "subspecies", authorLower, authorHigherSubspecies),
-                                 Variety = ifelse(rank == "variety", word(taxonLower, -1), word(taxonHigherVariety, -1)),
-                                 varietyAuthor = ifelse(rank == "variety", authorLower, authorHigherVariety),
-                                 originalStatus = json$result$usage[which(json$result$usage$status == status[acc]), ]$status, #ifelse(any(status %in% "accepted"), "accepted", "Many status"),
-                                 taxonRank = rank,
-                                 brackish = "brackish" %in% classificationLower$environments,
-                                 freshwater = "freshwater" %in% classificationLower$environments,
-                                 marine = "marine" %in% classificationLower$environments,
-                                 terrestrial = "terrestrial" %in% classificationLower$environments) %>% 
-          unique()
-
-        
-      }
-      
-      # Synonyms and more
-      if(length(status) == 1 && status != "accepted"){
-        
-        # ID of synonym
-        id.sp <- json$result$usage$id
-        
-        # Accepted name from synonym ID
-        json.syn <- NULL
-        tryCatch({
-          # Attempt to retrieve JSON data
-          json.syn <- fromJSON(paste0("https://api.checklistbank.org/dataset/",dataset_number,"/synonym/", id.sp))
-        }, error = function(e) {})
-        
-        #json.syn <- fromJSON(paste0("https://api.checklistbank.org/dataset/9923/synonym/", id.sp))
-        
-        if(!is.null(json.syn)){
-          json.syn.acc <- fromJSON(paste0("https://api.checklistbank.org/dataset/",dataset_number,"/nameusage/search?content=SCIENTIFIC_NAME&q=", gsub(" ", "%20", json.syn$accepted$name$scientificName), "&type=EXACT&offset=0&limit=1"))
-          
-          
-          classification <- as.data.frame(json.syn.acc$result$classification)
+        # Single accepted name
+        if(any(acc)) {
+          classification <- bind_rows(json$result$classification[acc])
           rank <- classification$rank[nrow(classification)]
+          classificationID <- classification$id[classification$rank == rank]
           
-          # Lower classification ID
-          classificationID <- classification$id[classification$rank == rank][1]
-          
-          # Classification rank into the list 
-          # Api COL: https://api.checklistbank.org/dataset/9923/taxon/8TN37
-          classificationLower <- fromJSON(paste0("https://api.checklistbank.org/dataset/",dataset_number,"/taxon/", classificationID))
-          
-          taxonLower <- ch0_to_Na(classificationLower$name$scientificName) 
+          classificationLower <- fromJSON(paste0("https://api.checklistbank.org/dataset/",
+                                                 dataset_number, "/taxon/", classificationID))
+          taxonLower <- ch0_to_Na(classificationLower$name$scientificName)
           authorLower <- ch0_to_Na(classificationLower$name$authorship)
           
-          # Habitat
-          # habitat <- ch0_to_Na(classificationLower$environments)
+          classificationHigher <- fromJSON(paste0("https://api.checklistbank.org/dataset/",
+                                                  dataset_number, "/taxon/", classificationID, "/classification"))
+          getHigher <- function(rank) {
+            val <- classificationHigher$name[classificationHigher$rank == rank]
+            if(length(val) == 0) return(NA) else return(val)
+          }
+          getAuthor <- function(rank) {
+            val <- classificationHigher$authorship[classificationHigher$rank == rank]
+            if(length(val) == 0) return(NA) else return(val)
+          }
           
-          # Higher classification compared to the rank into the list 
-          # Api COL: https://api.checklistbank.org/dataset/9923/taxon/8TN37/classification
-          classificationHigher <- fromJSON(paste0("https://api.checklistbank.org/dataset/",dataset_number,"/taxon/", classificationID, "/classification"))
-          
-          # Taxon classification
-          taxonHigherKingdom <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "kingdom"])
-          authorHigherKingdom <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "kingdom"])
-          taxonHigherPhylum <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "phylum"])
-          authorHigherPhylum <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "phylum"])
-          taxonHigherClass <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "class"])
-          authorHigherClass <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "class"])
-          taxonHigherOrder <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "order"])
-          authorHigherOrder <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "order"])
-          taxonHigherFamily <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "family"])
-          authorHigherFamily <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "family"])
-          taxonHigherGenus <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "genus"])
-          authorHigherGenus <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "genus"])
-          taxonHigherSpecies <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "species"])
-          authorHigherSpecies <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "species"])
-          taxonHigherSubspecies <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "subspecies"])
-          authorHigherSubspecies <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "subspecies"])
-          taxonHigherVariety <- ch0_to_Na(classificationHigher$name[classificationHigher$rank == "variety"])
-          authorHigherVariety <- ch0_to_Na(classificationHigher$authorship[classificationHigher$rank == "variety"])
- 
-          
-          # Dataframe to add to the main one
-          colNames.1 <- data.frame(originalName = sp.1,
-                                   colNamesAccepted = classification$name[classification$rank == rank],
-                                   colID = classificationID,
-                                   Kingdom = ifelse(rank == "kingdom", taxonLower, taxonHigherKingdom),
-                                   kingdomAuthor = ifelse(rank == "kingdom", authorLower, authorHigherKingdom),
-                                   Phylum = ifelse(rank == "phylum", taxonLower, taxonHigherPhylum),
-                                   phylumAuthor = ifelse(rank == "phylum", authorLower, authorHigherPhylum),
-                                   Class = ifelse(rank == "class", taxonLower, taxonHigherClass),
-                                   classAuthor = ifelse(rank == "class", authorLower, authorHigherClass),
-                                   Order = ifelse(rank == "order", taxonLower, taxonHigherOrder),
-                                   orderAuthor = ifelse(rank == "order", authorLower, authorHigherOrder),
-                                   Family = ifelse(rank == "family", taxonLower, taxonHigherFamily),
-                                   familyAuthor = ifelse(rank == "family", authorLower, authorHigherFamily),
-                                   Genus = ifelse(rank == "genus", taxonLower, taxonHigherGenus),
-                                   genusAuthor = ifelse(rank == "genus", authorLower, authorHigherGenus),
-                                   Species = ifelse(rank == "species", word(taxonLower, -1), word(taxonHigherSpecies, -1)),
-                                   speciesAuthor = ifelse(rank == "species", authorLower, authorHigherSpecies),
-                                   Subspecies = ifelse(rank == "subspecies", word(taxonLower, -1), word(taxonHigherSubspecies, -1)),
-                                   subspeciesAuthor = ifelse(rank == "subspecies", authorLower, authorHigherSubspecies),
-                                   Variety = ifelse(rank == "variety", word(taxonLower, -1), word(taxonHigherVariety, -1)),
-                                   varietyAuthor = ifelse(rank == "variety", authorLower, authorHigherVariety),
-                                   originalStatus = json$result$usage[which(json$result$usage$status == status[acc]), ]$status, #ifelse(any(status %in% "accepted"), "accepted", "Many status"),
-                                   taxonRank = rank,
-                                   brackish = "brackish" %in% classificationLower$environments,
-                                   freshwater = "freshwater" %in% classificationLower$environments,
-                                   marine = "marine" %in% classificationLower$environments,
-                                   terrestrial = "terrestrial" %in% classificationLower$environments) %>% 
-            unique()
-
-          
-        } else{
-          
-          colNames.1 <- data.frame(originalName = sp.1,
-                                   colNamesAccepted = "Not found",
-                                   colID = "Not found",
-                                   Kingdom = "Not found",
-                                   kingdomAuthor = "Not found",
-                                   Phylum = "Not found",
-                                   phylumAuthor = "Not found",
-                                   Class = "Not found",
-                                   classAuthor = "Not found",
-                                   Order = "Not found",
-                                   orderAuthor = "Not found",
-                                   Family = "Not found",
-                                   familyAuthor = "Not found",
-                                   Genus = "Not found",
-                                   genusAuthor = "Not found",
-                                   Species = "Not found",
-                                   speciesAuthor = "Not found",
-                                   Subspecies = "Not found",
-                                   subspeciesAuthor = "Not found",
-                                   Variety = "Not found",
-                                   varietyAuthor = "Not found",
-                                   originalStatus = "Not found",
-                                   taxonRank = "Not Found",
-                                   brackish = "Not Found",
-                                   freshwater = "Not Found",
-                                   marine = "Not Found",
-                                   terrestrial = "Not Found")
+          resolved_df <- rbind(resolved_df,
+                               data.frame(
+                                 originalName = sp.1,
+                                 colNamesAccepted = taxonLower,
+                                 colID = classificationID,
+                                 Kingdom = getHigher("kingdom"),
+                                 kingdomAuthor = getAuthor("kingdom"),
+                                 Phylum = getHigher("phylum"),
+                                 phylumAuthor = getAuthor("phylum"),
+                                 Class = getHigher("class"),
+                                 classAuthor = getAuthor("class"),
+                                 Order = getHigher("order"),
+                                 orderAuthor = getAuthor("order"),
+                                 Family = getHigher("family"),
+                                 familyAuthor = getAuthor("family"),
+                                 Genus = getHigher("genus"),
+                                 genusAuthor = getAuthor("genus"),
+                                 Species = word(taxonLower, -1),
+                                 speciesAuthor = authorLower,
+                                 Subspecies = NA,
+                                 subspeciesAuthor = NA,
+                                 Variety = NA,
+                                 varietyAuthor = NA,
+                                 originalStatus = "accepted",
+                                 taxonRank = rank,
+                                 brackish = "brackish" %in% classificationLower$environments,
+                                 freshwater = "freshwater" %in% classificationLower$environments,
+                                 marine = "marine" %in% classificationLower$environments,
+                                 terrestrial = "terrestrial" %in% classificationLower$environments
+                               ))
         }
       }
       
-    }
+      # Increment progress
+      incProgress(1/length(x), detail = paste("Processing:", i, "of", length(x)))
+    } # end loop
     
-    colNames <- rbind(colNames, colNames.1)
-    
-    # print(paste(i, "---- of ----", length(x)))
-    
-    # Increment the progress bar, and update the detail text.
-    incProgress(1/length(x), detail = paste("Doing:", i))
-    
-  }
-
-  )
-  return(colNames)
+  }) # end withProgress
   
+  return(list(resolved = resolved_df, ambiguous = ambiguous_list))
 }
+
+
+
