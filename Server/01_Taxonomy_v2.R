@@ -2,152 +2,219 @@
 # Taxonomy v.2 #
 #--------------#
 
-# Objects to store files ----
-temp_df <- reactiveValues(df_data = NULL) # <- Store .csv file input
-temp_df.2 <- reactiveValues(df_data = NULL) # <- Store taxonomy data
+# Reactive values to store CSV input and taxonomy output
+temp_df <- reactiveValues(df_data = NULL)      # Uploaded CSV
+temp_df.2 <- reactiveValues(df_data = NULL)    # Reviewed taxonomy
 
-# We can use this option to select the column name to perform the analysis
+# ReactiveValues for storing resolved and ambiguous taxa
+rv <- reactiveValues(
+  resolved_df = NULL,
+  ambiguous_list = list()
+)
+
+# Update column selection input based on uploaded CSV
 observe({
-  # Don't run unless a data have been imported
   req(temp_df$df_data)
-  colmn.names <- colnames(temp_df$df_data)
-  
-  updateSelectInput(session = session, "text.db", choices = colmn.names)
+  updateSelectInput(session, "text.db", choices = colnames(temp_df$df_data))
 })
 
-# Show table whit uploaded data (temp_df) in the card
+# Show table with uploaded CSV
 output$inputDataframe <- DT::renderDataTable({
-
   req(input$file1)
-
-  temp_df$df_data <-  fread(input$file1$datapath, sep = ",") %>%
-    as.data.frame()
-
+  temp_df$df_data <- fread(input$file1$datapath, sep = ",") %>% as.data.frame()
   temp_df$df_data
-
-},
-options = (list(scrollX = TRUE, paging = FALSE)), rownames= FALSE)
-
+}, options = list(scrollX = TRUE, paging = FALSE), rownames = FALSE)
 
 output$uiTaxonomy <- renderUI({
   req(input$file1)
-  
-  card(card_header("Taxonomy"),
+  card(
+    card_header("Taxonomy"),
     full_screen = TRUE, fill = FALSE,
     DT::dataTableOutput("inputDataframe")
   )
 })
 
-
-
-# Taxonomy check ----
+# Taxonomy check observeEvent
 observeEvent(input$taxa.run.button, {
+  req(temp_df$df_data)
   
-  if(!is.null(temp_df$df_data)){
-    if(input$text.db %in% colnames(temp_df$df_data)){
-      
-      spTaxa <- unique(stringr::str_trim(temp_df$df_data[ ,input$text.db], side = c("both")))
-      
-      # Select function to retrieve taxonomy in specify format (DB: COL)
-      if(input$taxon.an == "Specify_COL") {
-        temp_df.2$df_data <- specifyTaxon(spTaxa)
-        temp_df.2$df_data <- temp_df.2$df_data$colNames
-      }
-      
-      # Select function to retrieve taxonomy in CBB_DB format (DB: COL)
-      if(input$taxon.an == "CBB_DB_COL") {
-        
-        dataset_number <- ifelse(input$dataset_number == "" | is.null(input$dataset_number),
-                                 311872, 
-                                 as.numeric(input$dataset_number))
-        
-        temp_df.2$df_data <- cbbdbCol(
-          spTaxa,
-          dataset_number = dataset_number
+  if(input$text.db %in% colnames(temp_df$df_data)){
+    
+    spTaxa <- unique(stringr::str_trim(temp_df$df_data[, input$text.db], side = "both"))
+    
+    # Dataset number for CBB_DB_COL
+    dataset_number <- ifelse(is.null(input$dataset_number) | input$dataset_number == "",
+                             312092,
+                             as.numeric(input$dataset_number))
+    
+    # Specify COL
+    if(input$taxon.an == "Specify_COL"){
+      temp_df.2$df_data <- specifyTaxon(spTaxa)$colNames
+      rv$resolved_df <- temp_df.2$df_data
+      rv$ambiguous_list <- list()
+    }
+    
+    # CBB_DB_COL
+    if(input$taxon.an == "CBB_DB_COL"){
+      cbb_result <- cbbdbCol(spTaxa, dataset_number = dataset_number)
+      rv$resolved_df <- cbb_result$resolved
+      rv$ambiguous_list <- cbb_result$ambiguous
+    }
+    
+    # Specify WORMS
+    if(input$taxon.an == "Specify_WORMS"){
+      temp_df.2$df_data <- specifyWorms(spTaxa)
+      rv$resolved_df <- temp_df.2$df_data
+      rv$ambiguous_list <- list()
+    }
+    
+    # Render ambiguous ID selection only if ambiguous taxa exist
+    output$choose_ids_ui <- renderUI({
+      req(input$taxon.an)
+      if(input$taxon.an == "CBB_DB_COL" && length(rv$ambiguous_list) > 0){
+        tagList(
+          lapply(seq_along(rv$ambiguous_list), function(i){
+            taxon_name <- names(rv$ambiguous_list)[i]
+            selectInput(
+              inputId = paste0("id_select_", i),
+              label = taxon_name,
+              choices = rv$ambiguous_list[[i]]
+            )
+          }),
+          actionButton("confirm_ids", "Confirm Selected IDs",
+                       style = "width: 190px; height: 35px; font-size: 90%; font-weight: bold;")
         )
       }
-      
-      # Select function to retrieve taxonomy in Specify format (DB: WORMS)
-      if(input$taxon.an == "Specify_WORMS") {
-        temp_df.2$df_data <- specifyWorms(spTaxa)
-      }
-      
-      output$downloadButton <- renderUI({
-        downloadButton("downloadData", "Download Dataset",
-                       style = "display: flex;
-                       align-items: center;   /* vertical centering */
-                       justify-content: center; /* horizontal centering */
-                       padding:6px;
-                       font-weight: bold;
-                       font-size:100%; 
-                       height:63px;"
-                       )
-      })
-      
-    } else{
-      showNotification("No taxa column was found.")
-    }
+    })
+    
+    # Show download button
+    output$downloadButton <- renderUI({
+      downloadButton("downloadData", "Download Dataset",
+                     style = "display: flex; align-items: center; justify-content: center;
+                              padding:6px; font-weight: bold; font-size:100%; height:63px;")
+    })
+    
   } else {
-    showNotification("No data was upload.")
+    showNotification("No taxa column was found.")
   }
-  
 })
 
+# Process user-selected ambiguous IDs
+observeEvent(input$confirm_ids, {
+  req(rv$ambiguous_list)
+  dataset_number <- ifelse(is.null(input$dataset_number) | input$dataset_number == "",
+                           312092,
+                           as.numeric(input$dataset_number))
+  
+  ambiguous_full <- data.frame()
+  
+  for(i in seq_along(rv$ambiguous_list)){
+    selected_id <- input[[paste0("id_select_", i)]]
+    taxon_name <- names(rv$ambiguous_list)[i]
+    
+    # Lower classification
+    classificationLower <- fromJSON(paste0("https://api.checklistbank.org/dataset/",
+                                           dataset_number, "/taxon/", selected_id))
+    taxonLower <- ch0_to_Na(classificationLower$name$scientificName)
+    authorLower <- ch0_to_Na(classificationLower$name$authorship)
+    
+    # Higher classification
+    classificationHigher <- fromJSON(paste0("https://api.checklistbank.org/dataset/",
+                                            dataset_number, "/taxon/", selected_id, "/classification"))
+    
+    # Helper functions
+    getHigher <- function(rank){
+      val <- classificationHigher$name[classificationHigher$rank == rank]
+      if(length(val) == 0) return(NA) else return(val)
+    }
+    getAuthor <- function(rank){
+      val <- classificationHigher$authorship[classificationHigher$rank == rank]
+      if(length(val) == 0) return(NA) else return(val)
+    }
+    
+    # Build row
+    row <- data.frame(
+      originalName = taxon_name,
+      colNamesAccepted = taxonLower,
+      colID = selected_id,
+      Kingdom = getHigher("kingdom"),
+      kingdomAuthor = getAuthor("kingdom"),
+      Phylum = getHigher("phylum"),
+      phylumAuthor = getAuthor("phylum"),
+      Class = getHigher("class"),
+      classAuthor = getAuthor("class"),
+      Order = getHigher("order"),
+      orderAuthor = getAuthor("order"),
+      Family = getHigher("family"),
+      familyAuthor = getAuthor("family"),
+      Genus = getHigher("genus"),
+      genusAuthor = getAuthor("genus"),
+      Species = word(taxonLower, -1),
+      speciesAuthor = authorLower,
+      Subspecies = NA,
+      subspeciesAuthor = NA,
+      Variety = NA,
+      varietyAuthor = NA,
+      originalStatus = "accepted",
+      taxonRank = "species",
+      brackish = "brackish" %in% classificationLower$environments,
+      freshwater = "freshwater" %in% classificationLower$environments,
+      marine = "marine" %in% classificationLower$environments,
+      terrestrial = "terrestrial" %in% classificationLower$environments
+    )
+    
+    ambiguous_full <- rbind(ambiguous_full, row)
+  }
+  
+  # Merge resolved + user-selected ambiguous
+  temp_df.2$df_data <- rbind(rv$resolved_df, ambiguous_full)
+  
+  # Remove confirm button after processing
+  output$choose_ids_ui <- renderUI({})
+})
+
+# Reset dataset_number if NA
 observe({
-  if (is.na(input$dataset_number)) {
-    updateNumericInput(session, "dataset_number", value = 311872)
+  if(is.na(input$dataset_number)){
+    updateNumericInput(session, "dataset_number", value = 312092)
   }
 })
 
-# Show table whit reviewed taxonomy information data (temp_df.2)
+# Show reviewed taxonomy table
 output$dataTaxonomy <- DT::renderDataTable({
-  
   req(temp_df.2$df_data)
-  
   temp_df.2$df_data
-  
-}, 
-options = (list(scrollX = TRUE, paging = FALSE)), rownames= FALSE) 
-
+}, options = list(scrollX = TRUE, paging = FALSE), rownames = FALSE)
 
 output$uiRevTaxonomy <- renderUI({
   req(temp_df.2$df_data)
-  
   card(
     card_header("Reviewed taxonomy"),
-    full_screen = FALSE, fill = FALSE,
+    full_screen = TRUE, fill = FALSE,
     DT::dataTableOutput("dataTaxonomy")
   )
 })
 
-
-# Message to check if the rows of initial and final dataset have the same number.
+# Compare row counts
 observe({
-  
   req(temp_df$df_data)
   req(temp_df.2$df_data)
   
   if(nrow(temp_df$df_data) == nrow(temp_df.2$df_data)){
-    
     showNotification("The initial and Final datasets HAVE the same number of rows.",
                      type = "message", duration = 5)
-    
   } else {
-    
     showNotification("The initial and Final datasets DO NOT HAVE the same number of rows.",
                      type = "warning", duration = NULL)
-    
   }
-  
 })
 
-
-# Download temp_df.2 ----
+# Download reviewed taxonomy
 output$downloadData <- downloadHandler(
   filename = function() {
-    paste("CBB_Taxa_dataset_", Sys.Date(), ".csv", sep = "")
+    paste0("CBB_Taxa_dataset_", Sys.Date(), ".csv")
   },
-  content = function(file) {
+  content = function(file){
     write.csv(temp_df.2$df_data, file, row.names = FALSE, fileEncoding = "UTF-8")
   }
 )
