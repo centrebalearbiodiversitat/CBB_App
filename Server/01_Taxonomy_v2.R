@@ -55,11 +55,37 @@ observeEvent(input$taxa.run.button, {
     }
     
     # CBB_DB_COL
+    # CBB_DB_COL
     if(input$taxon.an == "CBB_DB_COL"){
       cbb_result <- cbbdbCol(spTaxa, dataset_number = dataset_number)
       rv$resolved_df <- cbb_result$resolved
       rv$ambiguous_list <- cbb_result$ambiguous
+      
+      # Always assign resolved_df to temp_df.2 to show table
+      temp_df.2$df_data <- rv$resolved_df
+      
+      # Render ambiguous ID selection only if there are ambiguous taxa
+      if(length(rv$ambiguous_list) > 0){
+        output$choose_ids_ui <- renderUI({
+          tagList(
+            lapply(seq_along(rv$ambiguous_list), function(i){
+              taxon_name <- names(rv$ambiguous_list)[i]
+              selectInput(
+                inputId = paste0("id_select_", i),
+                label = taxon_name,
+                choices = rv$ambiguous_list[[i]]
+              )
+            }),
+            actionButton("confirm_ids", "Confirm Selected IDs",
+                         style = "width: 190px; height: 35px; font-size: 90%; font-weight: bold;")
+          )
+        })
+      } else {
+        # No ambiguous taxa → remove selection UI
+        output$choose_ids_ui <- renderUI({ NULL })
+      }
     }
+    
     
     # Specify WORMS
     if(input$taxon.an == "Specify_WORMS"){
