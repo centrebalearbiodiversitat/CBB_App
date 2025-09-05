@@ -97,21 +97,59 @@ observeEvent(input$taxa.run.button, {
     # Render ambiguous ID selection only if ambiguous taxa exist
     output$choose_ids_ui <- renderUI({
       req(input$taxon.an)
-      if(input$taxon.an == "CBB_DB_COL" && length(rv$ambiguous_list) > 0){
+      if (input$taxon.an == "CBB_DB_COL" && length(rv$ambiguous_list) > 0) {
+        dataset_number <- ifelse(is.null(input$dataset_number) | input$dataset_number == "",
+                                 312092,
+                                 as.numeric(input$dataset_number))
+        
         tagList(
-          lapply(seq_along(rv$ambiguous_list), function(i){
-            taxon_name <- names(rv$ambiguous_list)[i]
-            selectInput(
-              inputId = paste0("id_select_", i),
-              label = taxon_name,
-              choices = rv$ambiguous_list[[i]]
-            )
-          }),
+          # Scrollable wrapper for all taxon groups
+          tags$div(
+            style = "overflow-y: auto; border: 1px solid #ddd; 
+                 padding: 12px; border-radius: 8px; background-color: #fafafa;
+                 max-height: 400px;",   # 👈 you can tweak/remove this
+            
+            lapply(seq_along(rv$ambiguous_list), function(i) {
+              taxon_name <- names(rv$ambiguous_list)[i]
+              ids <- rv$ambiguous_list[[i]]
+              
+              tagList(
+                tags$h5(style = "margin-top: 10px;", taxon_name),
+                lapply(ids, function(id) {
+                  tags$div(
+                    style = "margin-bottom: 6px;",
+                    tags$input(
+                      type = "radio",
+                      name = paste0("id_select_", i),
+                      value = id,
+                      style = "margin-right: 6px;",
+                      onchange = sprintf("Shiny.setInputValue('%s','%s')", 
+                                         paste0("id_select_", i), id)
+                    ),
+                    tags$a(
+                      href = paste0("https://www.checklistbank.org/dataset/",
+                                    dataset_number, "/taxon/", id),
+                      target = "_blank",
+                      id
+                    )
+                  )
+                })
+              )
+            })
+          ),
+          
+          # Confirm button
           actionButton("confirm_ids", "Confirm Selected IDs",
-                       style = "width: 190px; height: 35px; font-size: 90%; font-weight: bold;")
+                       style = "width: 190px; height: 35px; font-size: 90%; 
+                            font-weight: bold; margin-top:10px;")
         )
       }
     })
+    
+    
+    
+    
+    
     
     # Show download button
     output$downloadButton <- renderUI({
