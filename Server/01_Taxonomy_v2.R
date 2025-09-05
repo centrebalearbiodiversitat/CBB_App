@@ -107,7 +107,7 @@ observeEvent(input$taxa.run.button, {
           tags$div(
             style = "overflow-y: auto; border: 1px solid #ddd; 
                  padding: 12px; border-radius: 8px; background-color: #fafafa;
-                 max-height: 400px;",   # 👈 you can tweak/remove this
+                 max-height: 400px;",   # you can tweak/remove this
             
             lapply(seq_along(rv$ambiguous_list), function(i) {
               taxon_name <- names(rv$ambiguous_list)[i]
