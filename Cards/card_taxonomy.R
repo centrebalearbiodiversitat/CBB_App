@@ -75,7 +75,7 @@ cards.taxonomy <- list(# Cards for taxonomy
                      It is used to reference, access, and download data <b>from the specified version of a COL dataset</b>."
             )
           ),
-          value = 311872,
+          value = 312092, #dataset number
           min = 1
         ),
 
@@ -87,7 +87,7 @@ tags$head(tags$style(
 tags$script(
   HTML(
     "$(document).on('input', '#dataset_number', function() {
-      if ($(this).val() == '311872' || $(this).val() == '') {
+      if ($(this).val() == '312092' || $(this).val() == '') {
         $(this).css('color', 'grey');
       } else {
         $(this).css('color', 'black');
@@ -128,10 +128,12 @@ uiOutput("uiTaxonomy"),
 uiOutput("uiRevTaxonomy"),
 
 # Table contains IUCN category
-uiOutput("uiIucnCat")
+uiOutput("uiIucnCat"),
 
-    )
-  ))
+# Add ambiguous taxa selection UI
+uiOutput("choose_ids_ui"),
+
+  )))
 
 
 # cards.taxonomy[[1]]
