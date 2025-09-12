@@ -1,5 +1,11 @@
-# CBB Taxonomy App
-CBB Taxonomy App
+# CBB App
+
+To run the CBB App on your device, run the following code in R:
+
+```r
+pacman::p_load(shiny) 
+runGitHub(repo = "CBB_App", username = "centrebalearbiodiversitat", ref = "main")
+```
 
 <hr>
 
