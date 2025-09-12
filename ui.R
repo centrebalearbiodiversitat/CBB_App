@@ -12,10 +12,13 @@ pacman::p_load(bslib, data.table, DT, jsonlite, leaflet, shiny, tidyverse,
 #----------#
 # Function ---------------------------------------------------------------------
 #----------#
-source("./function/cbbdbCol.R")
-source("./function/ch0_to_Na.R")
-source("./function/specifyTaxon.R")
-source("./function/wormsTaxon.R")
+# source("./function/cbbdbCol.R")
+# source("./function/ch0_to_Na.R")
+# source("./function/specifyTaxon.R")
+# source("./function/wormsTaxon.R")
+# source("./function/infoIconTooltip.R")
+
+lapply(list.files("./function", pattern = "\\.R$", full.names = TRUE), source)
 
 #------#
 # Cards ------------------------------------------------------------------------
