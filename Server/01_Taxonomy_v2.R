@@ -23,10 +23,10 @@ rv <- reactiveValues(
 )
 
 # Update column selection input based on uploaded CSV
-observe({
-  req(temp_df$df_data)
-  updateSelectInput(session, "text.db", choices = colnames(temp_df$df_data))
-})
+# observe({
+#   req(temp_df$df_data)
+#   updateSelectInput(session, "text.db", choices = colnames(temp_df$df_data))
+# })
 
 # Show table with uploaded CSV
 output$inputDataframe <- DT::renderDataTable({
