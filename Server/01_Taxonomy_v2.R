@@ -6,6 +6,16 @@
 temp_df <- reactiveValues(df_data = NULL)      # Uploaded CSV
 temp_df.2 <- reactiveValues(df_data = NULL)    # Reviewed taxonomy
 
+# We can use this option to select the column name to perform the analysis
+observe({
+  # Don't run unless a data have been imported
+  req(temp_df$df_data)
+  colmn.names <- colnames(temp_df$df_data)
+  
+  updateSelectInput(session = session, "text.db", choices = colmn.names)
+})
+
+
 # ReactiveValues for storing resolved and ambiguous taxa
 rv <- reactiveValues(
   resolved_df = NULL,
@@ -54,7 +64,6 @@ observeEvent(input$taxa.run.button, {
       rv$ambiguous_list <- list()
     }
     
-    # CBB_DB_COL
     # CBB_DB_COL
     if(input$taxon.an == "CBB_DB_COL"){
       cbb_result <- cbbdbCol(spTaxa, dataset_number = dataset_number)
