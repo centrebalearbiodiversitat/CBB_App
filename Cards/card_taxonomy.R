@@ -75,7 +75,7 @@ cards.taxonomy <- list(# Cards for taxonomy
                      It is used to reference, access, and download data <b>from the specified version of a COL dataset</b>."
             )
           ),
-          value = 312092, #dataset number
+          value = 312361, #dataset number
           min = 1
         ),
 
@@ -87,7 +87,7 @@ tags$head(tags$style(
 tags$script(
   HTML(
     "$(document).on('input', '#dataset_number', function() {
-      if ($(this).val() == '312092' || $(this).val() == '') {
+      if ($(this).val() == '312361' || $(this).val() == '') {
         $(this).css('color', 'grey');
       } else {
         $(this).css('color', 'black');
