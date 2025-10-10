@@ -5,7 +5,7 @@
 # 
 # i=1
 
-cbbdbCol <- function(x, dataset_number = 312092) {
+cbbdbCol <- function(x, dataset_number = 312361) {
   
   resolved_df <- data.frame()
   ambiguous_list <- list()
@@ -28,10 +28,16 @@ cbbdbCol <- function(x, dataset_number = 312092) {
                              data.frame(originalName = sp.1,
                                         colNamesAccepted = "Not found",
                                         colID = "Not found",
+                                        Life = "Not found",
+                                        lifeAuthor = "Not found",
                                         Kingdom = "Not found",
                                         kingdomAuthor = "Not found",
                                         Phylum = "Not found",
                                         phylumAuthor = "Not found",
+                                        Parvphylum = "Not found",
+                                        parvphylumAuthor = "Not found",
+                                        Gigaclass = "Not found",
+                                        gigaclassAuthor = "Not found",
                                         Class = "Not found",
                                         classAuthor = "Not found",
                                         Order = "Not found",
@@ -90,10 +96,16 @@ cbbdbCol <- function(x, dataset_number = 312092) {
                                  originalName = sp.1,
                                  colNamesAccepted = taxonLower,
                                  colID = classificationID,
+                                 Life = getHigher("life"),
+                                 lifeAuthor = getAuthor("life"),
                                  Kingdom = getHigher("kingdom"),
                                  kingdomAuthor = getAuthor("kingdom"),
                                  Phylum = getHigher("phylum"),
                                  phylumAuthor = getAuthor("phylum"),
+                                 Parvphylum = getHigher("parvphylum"),
+                                 parvphylumAuthor = getAuthor("parvphylum"),
+                                 Gigaclass = getHigher("gigaclass"),
+                                 gigaclassAuthor = getAuthor("gigaclass"),
                                  Class = getHigher("class"),
                                  classAuthor = getAuthor("class"),
                                  Order = getHigher("order"),
