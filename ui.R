@@ -6,7 +6,6 @@
 pacman::p_load(bslib, data.table, DT, jsonlite, leaflet, shiny, tidyverse, 
                rgbif, sf, biomonitoR, vegan, openxlsx, red, rredlist, plotly,
                terra)
-
 # Tutorial: https://rstudio.github.io/bslib/articles/dashboards/index.html
 
 #----------#
@@ -18,7 +17,9 @@ pacman::p_load(bslib, data.table, DT, jsonlite, leaflet, shiny, tidyverse,
 # source("./function/wormsTaxon.R")
 # source("./function/infoIconTooltip.R")
 
-lapply(list.files("./function", pattern = "\\.R$", full.names = TRUE), source)
+# lapply(list.files("./function", pattern = "\\.R$", full.names = TRUE), source)
+
+source("./utils.R")
 
 #------#
 # Cards ------------------------------------------------------------------------

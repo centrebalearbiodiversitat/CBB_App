@@ -12,6 +12,7 @@ observe({
   req(temp_df$df_data)
   colmn.names <- colnames(temp_df$df_data)
   
+  # "text.db" is the column name object
   updateSelectInput(session = session, "text.db", choices = colmn.names)
 })
 
@@ -31,7 +32,9 @@ rv <- reactiveValues(
 # Show table with uploaded CSV
 output$inputDataframe <- DT::renderDataTable({
   req(input$file1)
-  temp_df$df_data <- fread(input$file1$datapath, sep = ",") %>% as.data.frame()
+  temp_df$df_data <- fread(input$file1$datapath, sep = ",") %>% 
+    as.data.frame()
+  
   temp_df$df_data
 }, options = list(scrollX = TRUE, paging = FALSE), rownames = FALSE)
 
@@ -50,17 +53,17 @@ observeEvent(input$taxa.run.button, {
   
   if(input$text.db %in% colnames(temp_df$df_data)){
     
-    spTaxa <- unique(stringr::str_trim(temp_df$df_data[, input$text.db], side = "both"))
+    spTaxa <- unique(stringr::str_squish(temp_df$df_data[, input$text.db]))
     
-    # Dataset number
+    # Set the Dataset number
     dataset_number <- ifelse(is.null(input$dataset_number) | input$dataset_number == "",
-                             312361,
-                             as.numeric(input$dataset_number))
+                             312361, as.numeric(input$dataset_number))
     
     if (input$taxon.an %in% c("CBB_DB_COL", "Specify_COL")) {
 
       # Call the same function for both
       cbb_result <- cbbdbCol(spTaxa, dataset_number = dataset_number)
+      
       rv$resolved_df <- cbb_result$resolved
       rv$ambiguous_list <- cbb_result$ambiguous
       
@@ -103,8 +106,7 @@ observeEvent(input$taxa.run.button, {
       req(input$taxon.an)
       if (input$taxon.an %in% c("CBB_DB_COL", "Specify_COL") && length(rv$ambiguous_list) > 0) {
         dataset_number <- ifelse(is.null(input$dataset_number) | input$dataset_number == "",
-                                 312361,
-                                 as.numeric(input$dataset_number))
+                                 312361, as.numeric(input$dataset_number))
         
         tagList(
           # Scrollable wrapper for all taxon groups
@@ -151,10 +153,6 @@ observeEvent(input$taxa.run.button, {
     })
     
     
-    
-    
-    
-    
     # Show download button
     output$downloadButton <- renderUI({
       downloadButton("downloadData", "Download Dataset",
@@ -171,8 +169,7 @@ observeEvent(input$taxa.run.button, {
 observeEvent(input$confirm_ids, {
   req(rv$ambiguous_list)
   dataset_number <- ifelse(is.null(input$dataset_number) | input$dataset_number == "",
-                           312361,
-                           as.numeric(input$dataset_number))
+                           312361, as.numeric(input$dataset_number))
   
   ambiguous_full <- data.frame()
   
@@ -243,34 +240,27 @@ observeEvent(input$confirm_ids, {
   
   # Merge resolved + user-selected ambiguous
   merged_df  <- rbind(rv$resolved_df, ambiguous_full)
+  print(merged_df)
   
   # Column filtering based on analysis type
   if (input$taxon.an == "Specify_COL") {
+    
+    cols_to_remove_specify <- c(
+      "lifeAuthor", "kingdomAuthor", "phylumAuthor", "parvphylumAuthor",
+      "gigaclassAuthor", "classAuthor", "orderAuthor", "familyAuthor",
+      "genusAuthor", "speciesAuthor", "subspeciesAuthor", "Variety", 
+      "varietyAuthor", "brackish", "freshwater", "marine", "terrestrial")
+    
     temp_df.2$df_data <- merged_df %>%
-      select(-lifeAuthor,
-             -kingdomAuthor,
-             -phylumAuthor,
-             -parvphylumAuthor,
-             -gigaclassAuthor,
-             -classAuthor,
-             -orderAuthor,
-             -familyAuthor,
-             -genusAuthor,
-             -speciesAuthor,
-             -subspeciesAuthor,
-             -Variety,
-             -varietyAuthor,
-             -brackish, 
-             -freshwater, 
-             -marine, 
-             -terrestrial)
+      select(-any_of(cols_to_remove_specify))
     
   } else if (input$taxon.an == "CBB_DB_COL") {
+    
+    cols_to_remove_db_col <- c("Parvphylum", "parvphylumAuthor", 
+                               "Gigaclass", "gigaclassAuthor")
+    
     temp_df.2$df_data <- merged_df %>%
-      select(-Parvphylum, 
-             -parvphylumAuthor, 
-             -Gigaclass, 
-             -gigaclassAuthor)
+      select(-any_of(cols_to_remove_db_col))
     
   } else {
     # Other cases: keep all columns
