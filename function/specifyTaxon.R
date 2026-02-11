@@ -2,24 +2,25 @@
 # Specify taxonomic function (COL) #
 #----------------------------------#
 
-# # Load libraries
+# Load libraries
 # pacman::p_load(jsonlite, openxlsx ,tidyverse)
 # 
-# # Functions
-# # This function return NA if the x is empty
+# Functions
+# This function return NA if the x is empty
 # source("./CBB_Shiny/function/ch0_to_Na.R")
 # 
 # # Load .csv
-# # taxa <- read.csv(file = paste0(path, fileName), sep = ",")
+# taxa <- read.csv(file = paste0(path, fileName), sep = ",")
 # taxa <- read.csv(file.choose())
 # head(taxa)
 # 
 # sp <- unique(str_trim(taxa$Taxon))
 # sp <- sp[1:20]
 
-
-
 # x: vector of taxa
+
+# x = taxa$originalName
+# dataset_number = 313811
 
 specifyTaxon <- function(x, dataset_number = 311872){
   
@@ -27,13 +28,14 @@ specifyTaxon <- function(x, dataset_number = 311872){
                   colStatus = data.frame())
   
   withProgress(message = "Downloading taxonomy", value = 0,
+               
                for(i in 1:length(x)){
                  
                  sp.1 <- x[i]
                  
                  # Json query
                  json.sp <- gsub(" ", "%20", sp.1)
-                 json <- fromJSON(paste0("https://api.checklistbank.org/dataset/", dataset_number,"/nameusage/search?content=SCIENTIFIC_NAME&q=", json.sp, "&type=EXACT&offset=0&limit=50"))
+                 json <- fromJSON(paste0("https://api.checklistbank.org/dataset/", dataset_number,"/nameusage/search?content=SCIENTIFIC_NAME&q=", json.sp, "&type=EXACT&offset=0&limit=20"))
                  
                  if(isTRUE(json$empty)){
                    
@@ -104,12 +106,11 @@ specifyTaxon <- function(x, dataset_number = 311872){
                      
                    } 
                    
-                   # Accepted names
+                   # Accepted names - ok
                    if(length(status) == 1 && status == "accepted"){
                      
                      classification <- as.data.frame(json$result$classification)
                      rank <- classification$rank[nrow(classification)]
-                     
                      
                      colNames.1 <- data.frame(originalName = sp.1,
                                               colNamesAccepted = classification$name[classification$rank == rank],
@@ -201,10 +202,8 @@ specifyTaxon <- function(x, dataset_number = 311872){
                  colList$colNames <- rbind(colList$colNames, colNames.1)
                  colList$colStatus <- rbind(colList$colStatus, colStatus.1)
                  
-                 # print(paste(i, "---- of ----", length(x)))
-                 
                  # Increment the progress bar, and update the detail text.
-                 incProgress(1/length(x), detail = paste("Doing:", i))
+                 # incProgress(1/length(x), detail = paste("Doing:", i))
                  
                }
   )
@@ -213,4 +212,3 @@ specifyTaxon <- function(x, dataset_number = 311872){
   
 }
 
-#a <- specifyTaxon(sp)

@@ -6,6 +6,17 @@
 temp_df <- reactiveValues(df_data = NULL)      # Uploaded CSV
 temp_df.2 <- reactiveValues(df_data = NULL)    # Reviewed taxonomy
 
+# We can use this option to select the column name to perform the analysis
+observe({
+  # Don't run unless a data have been imported
+  req(temp_df$df_data)
+  colmn.names <- colnames(temp_df$df_data)
+  
+  # "text.db" is the column name object
+  updateSelectInput(session = session, "text.db", choices = colmn.names)
+})
+
+
 # ReactiveValues for storing resolved and ambiguous taxa
 rv <- reactiveValues(
   resolved_df = NULL,
@@ -13,15 +24,17 @@ rv <- reactiveValues(
 )
 
 # Update column selection input based on uploaded CSV
-observe({
-  req(temp_df$df_data)
-  updateSelectInput(session, "text.db", choices = colnames(temp_df$df_data))
-})
+# observe({
+#   req(temp_df$df_data)
+#   updateSelectInput(session, "text.db", choices = colnames(temp_df$df_data))
+# })
 
 # Show table with uploaded CSV
 output$inputDataframe <- DT::renderDataTable({
   req(input$file1)
-  temp_df$df_data <- fread(input$file1$datapath, sep = ",") %>% as.data.frame()
+  temp_df$df_data <- fread(input$file1$datapath, sep = ",") %>% 
+    as.data.frame()
+  
   temp_df$df_data
 }, options = list(scrollX = TRUE, paging = FALSE), rownames = FALSE)
 
@@ -40,35 +53,28 @@ observeEvent(input$taxa.run.button, {
   
   if(input$text.db %in% colnames(temp_df$df_data)){
     
-    spTaxa <- unique(stringr::str_trim(temp_df$df_data[, input$text.db], side = "both"))
+    spTaxa <- unique(stringr::str_squish(temp_df$df_data[, input$text.db]))
     
-    # Dataset number for CBB_DB_COL
+    # Set the Dataset number
     dataset_number <- ifelse(is.null(input$dataset_number) | input$dataset_number == "",
-                             312092,
-                             as.numeric(input$dataset_number))
+                             312361, as.numeric(input$dataset_number))
     
-    # Specify COL
-    if(input$taxon.an == "Specify_COL"){
-      temp_df.2$df_data <- specifyTaxon(spTaxa)$colNames
-      rv$resolved_df <- temp_df.2$df_data
-      rv$ambiguous_list <- list()
-    }
-    
-    # CBB_DB_COL
-    # CBB_DB_COL
-    if(input$taxon.an == "CBB_DB_COL"){
+    if (input$taxon.an %in% c("CBB_DB_COL", "Specify_COL")) {
+
+      # Call the same function for both
       cbb_result <- cbbdbCol(spTaxa, dataset_number = dataset_number)
+      
       rv$resolved_df <- cbb_result$resolved
       rv$ambiguous_list <- cbb_result$ambiguous
       
-      # Always assign resolved_df to temp_df.2 to show table
+      # Always show the resolved table
       temp_df.2$df_data <- rv$resolved_df
       
-      # Render ambiguous ID selection only if there are ambiguous taxa
-      if(length(rv$ambiguous_list) > 0){
+      # Handle ambiguous taxa
+      if (length(rv$ambiguous_list) > 0) {
         output$choose_ids_ui <- renderUI({
           tagList(
-            lapply(seq_along(rv$ambiguous_list), function(i){
+            lapply(seq_along(rv$ambiguous_list), function(i) {
               taxon_name <- names(rv$ambiguous_list)[i]
               selectInput(
                 inputId = paste0("id_select_", i),
@@ -76,8 +82,10 @@ observeEvent(input$taxa.run.button, {
                 choices = rv$ambiguous_list[[i]]
               )
             }),
-            actionButton("confirm_ids", "Confirm Selected IDs",
-                         style = "width: 190px; height: 35px; font-size: 90%; font-weight: bold;")
+            actionButton(
+              "confirm_ids", "Confirm Selected IDs",
+              style = "width: 190px; height: 35px; font-size: 90%; font-weight: bold;"
+            )
           )
         })
       } else {
@@ -85,7 +93,6 @@ observeEvent(input$taxa.run.button, {
         output$choose_ids_ui <- renderUI({ NULL })
       }
     }
-    
     
     # Specify WORMS
     if(input$taxon.an == "Specify_WORMS"){
@@ -97,10 +104,9 @@ observeEvent(input$taxa.run.button, {
     # Render ambiguous ID selection only if ambiguous taxa exist
     output$choose_ids_ui <- renderUI({
       req(input$taxon.an)
-      if (input$taxon.an == "CBB_DB_COL" && length(rv$ambiguous_list) > 0) {
+      if (input$taxon.an %in% c("CBB_DB_COL", "Specify_COL") && length(rv$ambiguous_list) > 0) {
         dataset_number <- ifelse(is.null(input$dataset_number) | input$dataset_number == "",
-                                 312092,
-                                 as.numeric(input$dataset_number))
+                                 312361, as.numeric(input$dataset_number))
         
         tagList(
           # Scrollable wrapper for all taxon groups
@@ -147,10 +153,6 @@ observeEvent(input$taxa.run.button, {
     })
     
     
-    
-    
-    
-    
     # Show download button
     output$downloadButton <- renderUI({
       downloadButton("downloadData", "Download Dataset",
@@ -167,8 +169,7 @@ observeEvent(input$taxa.run.button, {
 observeEvent(input$confirm_ids, {
   req(rv$ambiguous_list)
   dataset_number <- ifelse(is.null(input$dataset_number) | input$dataset_number == "",
-                           312092,
-                           as.numeric(input$dataset_number))
+                           312361, as.numeric(input$dataset_number))
   
   ambiguous_full <- data.frame()
   
@@ -201,10 +202,16 @@ observeEvent(input$confirm_ids, {
       originalName = taxon_name,
       colNamesAccepted = taxonLower,
       colID = selected_id,
+      Life = getHigher("life"),
+      lifeAuthor = getAuthor("life"),
       Kingdom = getHigher("kingdom"),
       kingdomAuthor = getAuthor("kingdom"),
       Phylum = getHigher("phylum"),
       phylumAuthor = getAuthor("phylum"),
+      Parvphylum = getHigher("parvphylum"),
+      parvphylumAuthor = getAuthor("parvphylum"),
+      Gigaclass = getHigher("gigaclass"),
+      gigaclassAuthor = getAuthor("gigaclass"),
       Class = getHigher("class"),
       classAuthor = getAuthor("class"),
       Order = getHigher("order"),
@@ -228,10 +235,37 @@ observeEvent(input$confirm_ids, {
     )
     
     ambiguous_full <- rbind(ambiguous_full, row)
+    
   }
   
   # Merge resolved + user-selected ambiguous
-  temp_df.2$df_data <- rbind(rv$resolved_df, ambiguous_full)
+  merged_df  <- rbind(rv$resolved_df, ambiguous_full)
+  print(merged_df)
+  
+  # Column filtering based on analysis type
+  if (input$taxon.an == "Specify_COL") {
+    
+    cols_to_remove_specify <- c(
+      "lifeAuthor", "kingdomAuthor", "phylumAuthor", "parvphylumAuthor",
+      "gigaclassAuthor", "classAuthor", "orderAuthor", "familyAuthor",
+      "genusAuthor", "speciesAuthor", "subspeciesAuthor", "Variety", 
+      "varietyAuthor", "brackish", "freshwater", "marine", "terrestrial")
+    
+    temp_df.2$df_data <- merged_df %>%
+      select(-any_of(cols_to_remove_specify))
+    
+  } else if (input$taxon.an == "CBB_DB_COL") {
+    
+    cols_to_remove_db_col <- c("Parvphylum", "parvphylumAuthor", 
+                               "Gigaclass", "gigaclassAuthor")
+    
+    temp_df.2$df_data <- merged_df %>%
+      select(-any_of(cols_to_remove_db_col))
+    
+  } else {
+    # Other cases: keep all columns
+    temp_df.2$df_data <- merged_df
+  }
   
   # Remove confirm button after processing
   output$choose_ids_ui <- renderUI({})
@@ -240,7 +274,7 @@ observeEvent(input$confirm_ids, {
 # Reset dataset_number if NA
 observe({
   if(is.na(input$dataset_number)){
-    updateNumericInput(session, "dataset_number", value = 312092)
+    updateNumericInput(session, "dataset_number", value = 312361)
   }
 })
 

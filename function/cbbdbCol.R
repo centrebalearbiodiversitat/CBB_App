@@ -1,11 +1,12 @@
 # X is the vector containing the species to search.
 
-# x <- fread("~/OneDrive - Universitat de les Illes Balears/CBB objectives/CBB_DB/Taxonomy/ToCheck/thTaxa_2023_11_16.csv")
-# x <- zoo$x
-# 
+# taxa <- read.csv(file.choose())
+# taxa <- unique(str_trim(taxa$originalName))
+# x <- taxa
 # i=1
 
-cbbdbCol <- function(x, dataset_number = 312092) {
+
+cbbdbCol <- function(x, dataset_number = 312361) {
   
   resolved_df <- data.frame()
   ambiguous_list <- list()
@@ -28,10 +29,16 @@ cbbdbCol <- function(x, dataset_number = 312092) {
                              data.frame(originalName = sp.1,
                                         colNamesAccepted = "Not found",
                                         colID = "Not found",
+                                        Life = "Not found",
+                                        lifeAuthor = "Not found",
                                         Kingdom = "Not found",
                                         kingdomAuthor = "Not found",
                                         Phylum = "Not found",
                                         phylumAuthor = "Not found",
+                                        Parvphylum = "Not found",
+                                        parvphylumAuthor = "Not found",
+                                        Gigaclass = "Not found",
+                                        gigaclassAuthor = "Not found",
                                         Class = "Not found",
                                         classAuthor = "Not found",
                                         Order = "Not found",
@@ -65,56 +72,62 @@ cbbdbCol <- function(x, dataset_number = 312092) {
         
         # Single accepted name
         if(any(acc)) {
+          
           classification <- bind_rows(json$result$classification[acc])
           rank <- classification$rank[nrow(classification)]
           classificationID <- classification$id[classification$rank == rank]
           
+          # Classification of the lower taxonomic level
           classificationLower <- fromJSON(paste0("https://api.checklistbank.org/dataset/",
                                                  dataset_number, "/taxon/", classificationID))
-          taxonLower <- ch0_to_Na(classificationLower$name$scientificName)
-          authorLower <- ch0_to_Na(classificationLower$name$authorship)
           
+          taxonLower_df <- data.frame(id = ch0_to_Na(classificationLower$id),
+                                      name = ch0_to_Na(classificationLower$name$scientificName),
+                                      authorship = ch0_to_Na(classificationLower$name$authorship),
+                                      rank = ch0_to_Na(classificationLower$name$rank))
+          
+          # Classification of the higher taxonomic level
           classificationHigher <- fromJSON(paste0("https://api.checklistbank.org/dataset/",
-                                                  dataset_number, "/taxon/", classificationID, "/classification"))
-          getHigher <- function(rank) {
-            val <- classificationHigher$name[classificationHigher$rank == rank]
-            if(length(val) == 0) return(NA) else return(val)
-          }
-          getAuthor <- function(rank) {
-            val <- classificationHigher$authorship[classificationHigher$rank == rank]
-            if(length(val) == 0) return(NA) else return(val)
-          }
+                                                  dataset_number, "/taxon/", classificationID, "/classification")) %>%
+            select(id, name, authorship, rank)
+          
+          classificationTotal <- rbind(taxonLower_df, classificationHigher)
           
           resolved_df <- rbind(resolved_df,
                                data.frame(
                                  originalName = sp.1,
-                                 colNamesAccepted = taxonLower,
+                                 colNamesAccepted = ch0_to_Na(classificationLower$name$scientificName),
                                  colID = classificationID,
-                                 Kingdom = getHigher("kingdom"),
-                                 kingdomAuthor = getAuthor("kingdom"),
-                                 Phylum = getHigher("phylum"),
-                                 phylumAuthor = getAuthor("phylum"),
-                                 Class = getHigher("class"),
-                                 classAuthor = getAuthor("class"),
-                                 Order = getHigher("order"),
-                                 orderAuthor = getAuthor("order"),
-                                 Family = getHigher("family"),
-                                 familyAuthor = getAuthor("family"),
-                                 Genus = getHigher("genus"),
-                                 genusAuthor = getAuthor("genus"),
-                                 Species = word(taxonLower, -1),
-                                 speciesAuthor = authorLower,
-                                 Subspecies = NA,
-                                 subspeciesAuthor = NA,
-                                 Variety = NA,
-                                 varietyAuthor = NA,
-                                 originalStatus = "accepted",
+                                 Life = "Life",
+                                 lifeAuthor = NA,
+                                 Kingdom = getInfo(df = classificationTotal, colName = "name", rank = "kingdom"),
+                                 kingdomAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "kingdom"),
+                                 Phylum = getInfo(df = classificationTotal, colName = "name", rank = "phylum"),
+                                 phylumAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "phylum"),
+                                 Parvphylum = getInfo(df = classificationTotal, colName = "name", rank = "parvphylum"),
+                                 parvphylumAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "parvphylum"),
+                                 Gigaclass = getInfo(df = classificationTotal, colName = "name", rank = "gigaclass"),
+                                 gigaclassAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "gigaclass"),
+                                 Class = getInfo(df = classificationTotal, colName = "name", rank = "class"),
+                                 classAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "class"),
+                                 Order = getInfo(df = classificationTotal, colName = "name", rank = "order"),
+                                 orderAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "order"),
+                                 Family = getInfo(df = classificationTotal, colName = "name", rank = "family"),
+                                 familyAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "family"),
+                                 Genus = getInfo(df = classificationTotal, colName = "name", rank = "genus"),
+                                 genusAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "genus"),
+                                 Species = word(getInfo(df = classificationTotal, colName = "name", rank = "species"), -1),
+                                 speciesAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "species"),
+                                 Subspecies = word(getInfo(df = classificationTotal, colName = "name", rank = "subspecies"), -1),
+                                 subspeciesAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "subspecies"),
+                                 Variety = word(getInfo(df = classificationTotal, colName = "name", rank = "variety"), -1),
+                                 varietyAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "variety"),
                                  taxonRank = rank,
                                  brackish = "brackish" %in% classificationLower$environments,
                                  freshwater = "freshwater" %in% classificationLower$environments,
                                  marine = "marine" %in% classificationLower$environments,
-                                 terrestrial = "terrestrial" %in% classificationLower$environments
-                               ))
+                                 terrestrial = "terrestrial" %in% classificationLower$environments)
+                               )
         }
       }
       
