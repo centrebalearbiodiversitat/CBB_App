@@ -21,10 +21,16 @@
 #' getInfo(df, "name", 2)
 #'
 #' @export
-getInfo <- function(df = NULL, colName = NULL, rank = NULL) {
-  if (is.null(df) || is.null(colName) || is.null(rank)) return(NA)
-  val <- df[df[["rank"]] == rank, colName]
-  if (length(val) == 0) return(NA) else return(val)
+get_info <- function(df = NULL, col_name = NULL, rank = NULL) {
+  if (is.null(df) || is.null(col_name) || is.null(rank)) {
+    return(NA)
+  }
+  val <- df[df[["rank"]] == rank, col_name]
+  if (length(val) == 0) {
+    return(NA)
+  } else {
+    return(val)
+  }
 }
 
 
@@ -41,7 +47,7 @@ getInfo <- function(df = NULL, colName = NULL, rank = NULL) {
 #' @param x A character vector of scientific names to be resolved.
 #' @param dataset_number Numeric. ChecklistBank dataset identifier.
 #'   Default is \code{312361}.
-#'   
+#'
 #' If multiple accepted matches are found, the name and corresponding
 #' IDs are stored in the \code{ambiguous} element of the returned list.
 #'
@@ -66,138 +72,558 @@ getInfo <- function(df = NULL, colName = NULL, rank = NULL) {
 #' @importFrom dplyr bind_rows select
 #' @importFrom stringr word
 #' @export
-cbbdbCol <- function(x, dataset_number = 312361) {
-  
-  resolved_df <- data.frame()
-  ambiguous_list <- list()
-  
-  withProgress(message = "Downloading taxonomy", value = 0, {
-    
-    for(i in seq_along(x)) {
-      
-      sp.1 <- x[i]
-      json.sp <- gsub(" ", "%20", sp.1)
-      json <- fromJSON(paste0(
-        "https://api.checklistbank.org/dataset/", dataset_number,
-        "/nameusage/search?content=SCIENTIFIC_NAME&q=", json.sp,
-        "&type=EXACT&offset=0&limit=50"
-      ))
-      
-      # Species not found
-      if(isTRUE(json$empty)) {
-        resolved_df <- rbind(resolved_df,
-                             data.frame(originalName = sp.1,
-                                        colNamesAccepted = "Not found",
-                                        colID = "Not found",
-                                        Life = "Not found",
-                                        lifeAuthor = "Not found",
-                                        Kingdom = "Not found",
-                                        kingdomAuthor = "Not found",
-                                        Phylum = "Not found",
-                                        phylumAuthor = "Not found",
-                                        Parvphylum = "Not found",
-                                        parvphylumAuthor = "Not found",
-                                        Gigaclass = "Not found",
-                                        gigaclassAuthor = "Not found",
-                                        Class = "Not found",
-                                        classAuthor = "Not found",
-                                        Order = "Not found",
-                                        orderAuthor = "Not found",
-                                        Family = "Not found",
-                                        familyAuthor = "Not found",
-                                        Genus = "Not found",
-                                        genusAuthor = "Not found",
-                                        Species = "Not found",
-                                        speciesAuthor = "Not found",
-                                        Subspecies = "Not found",
-                                        subspeciesAuthor = "Not found",
-                                        Variety = "Not found",
-                                        varietyAuthor = "Not found",
-                                        originalStatus = "Not found",
-                                        taxonRank = "Not Found",
-                                        brackish = "Not Found",
-                                        freshwater = "Not Found",
-                                        marine = "Not Found",
-                                        terrestrial = "Not Found"))
-      } else {
-        
-        status <- json$result$usage$status
-        acc <- grepl("accepted", status)
-        
-        # Multiple accepted names
-        if(length(which(acc)) > 1) {
-          ambiguous_list[[sp.1]] <- json$result$usage$id[acc]
+col_by_name <- function(x, dataset_number = 312361) {
+  fun_result <- list(
+    resolved = data.frame(),
+    ambiguous = list()
+  )
+
+  # Only define progress if running inside Shiny
+  in_shiny <- exists("getDefaultReactiveDomain") && !is.null(getDefaultReactiveDomain())
+
+  if (in_shiny) {
+    withProgress(message = "Processing species names...", value = 0, {
+      n <- length(x)
+
+      for (i in seq_along(x)) {
+        name <- x[i]
+
+        sp_name <- URLencode(name)
+        json_sp <- tryCatch(
+          {
+            fromJSON(paste0(
+              "https://api.checklistbank.org/dataset/", dataset_number,
+              "/nameusage/search?content=SCIENTIFIC_NAME&q=", sp_name,
+              "&type=EXACT&offset=0&limit=20"
+            ))
+          },
+          error = function(e) NULL
+        )
+
+        # Species not found
+        if (is.null(json_sp) || isTRUE(json_sp$empty)) {
+          fun_result$resolved <- rbind(
+            fun_result$resolved,
+            data.frame(
+              originalName = name,
+              colNamesAccepted = "Not found",
+              colID = "Not found",
+              taxonRank = "Not found",
+              Life = "Not found",
+              lifeAuthor = "Not found",
+              Kingdom = "Not found",
+              kingdomAuthor = "Not found",
+              Phylum = "Not found",
+              phylumAuthor = "Not found",
+              Parvphylum = "Not found",
+              parvphylumAuthor = "Not found",
+              Gigaclass = "Not found",
+              gigaclassAuthor = "Not found",
+              Class = "Not found",
+              classAuthor = "Not found",
+              Order = "Not found",
+              orderAuthor = "Not found",
+              Family = "Not found",
+              familyAuthor = "Not found",
+              Genus = "Not found",
+              genusAuthor = "Not found",
+              Species = "Not found",
+              speciesAuthor = "Not found",
+              Subspecies = "Not found",
+              subspeciesAuthor = "Not found",
+              Variety = "Not found",
+              varietyAuthor = "Not found",
+              stringsAsFactors = FALSE
+            )
+          )
+          if (in_shiny) incProgress(1 / n)
           next
         }
-        
-        # Single accepted name
-        if(any(acc)) {
-          
-          classification <- bind_rows(json$result$classification[acc])
-          rank <- classification$rank[nrow(classification)]
-          classificationID <- classification$id[classification$rank == rank]
-          
-          # Classification of the lower taxonomic level
-          classificationLower <- fromJSON(paste0("https://api.checklistbank.org/dataset/",
-                                                 dataset_number, "/taxon/", classificationID))
-          
-          taxonLower_df <- data.frame(id = ch0_to_Na(classificationLower$id),
-                                      name = ch0_to_Na(classificationLower$name$scientificName),
-                                      authorship = ch0_to_Na(classificationLower$name$authorship),
-                                      rank = ch0_to_Na(classificationLower$name$rank))
-          
-          # Classification of the higher taxonomic level
-          classificationHigher <- fromJSON(paste0("https://api.checklistbank.org/dataset/",
-                                                  dataset_number, "/taxon/", classificationID, "/classification")) %>%
-            select(id, name, authorship, rank)
-          
-          classificationTotal <- rbind(taxonLower_df, classificationHigher)
-          
-          resolved_df <- rbind(resolved_df,
-                               data.frame(
-                                 originalName = sp.1,
-                                 colNamesAccepted = ch0_to_Na(classificationLower$name$scientificName),
-                                 colID = classificationID,
-                                 Life = "Life",
-                                 lifeAuthor = NA,
-                                 Kingdom = getInfo(df = classificationTotal, colName = "name", rank = "kingdom"),
-                                 kingdomAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "kingdom"),
-                                 Phylum = getInfo(df = classificationTotal, colName = "name", rank = "phylum"),
-                                 phylumAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "phylum"),
-                                 Parvphylum = getInfo(df = classificationTotal, colName = "name", rank = "parvphylum"),
-                                 parvphylumAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "parvphylum"),
-                                 Gigaclass = getInfo(df = classificationTotal, colName = "name", rank = "gigaclass"),
-                                 gigaclassAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "gigaclass"),
-                                 Class = getInfo(df = classificationTotal, colName = "name", rank = "class"),
-                                 classAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "class"),
-                                 Order = getInfo(df = classificationTotal, colName = "name", rank = "order"),
-                                 orderAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "order"),
-                                 Family = getInfo(df = classificationTotal, colName = "name", rank = "family"),
-                                 familyAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "family"),
-                                 Genus = getInfo(df = classificationTotal, colName = "name", rank = "genus"),
-                                 genusAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "genus"),
-                                 Species = word(getInfo(df = classificationTotal, colName = "name", rank = "species"), -1),
-                                 speciesAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "species"),
-                                 Subspecies = word(getInfo(df = classificationTotal, colName = "name", rank = "subspecies"), -1),
-                                 subspeciesAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "subspecies"),
-                                 Variety = word(getInfo(df = classificationTotal, colName = "name", rank = "variety"), -1),
-                                 varietyAuthor = getInfo(df = classificationTotal, colName = "authorship", rank = "variety"),
-                                 taxonRank = rank,
-                                 brackish = "brackish" %in% classificationLower$environments,
-                                 freshwater = "freshwater" %in% classificationLower$environments,
-                                 marine = "marine" %in% classificationLower$environments,
-                                 terrestrial = "terrestrial" %in% classificationLower$environments)
-          )
+
+        status <- json_sp$result$usage$status
+        acc <- grepl("accepted", status)
+
+        # Multiple accepted names
+        if (length(status) > 1) {
+          ambiguous_temp <- list()
+          ambiguous_temp[[name]] <- json_sp$result$usage$id
+          fun_result$ambiguous <- c(fun_result$ambiguous, ambiguous_temp)
+          if (in_shiny) incProgress(1 / length(x))
+          next
         }
+
+        # Single accepted name
+        if (any(acc)) {
+          taxon_lower_df <- data.frame(
+            id = ch0_to_Na(json_sp$result$usage$id),
+            name = ch0_to_Na(json_sp$result$usage$name$scientificName),
+            authorship = ch0_to_Na(json_sp$result$usage$name$authorship),
+            rank = ch0_to_Na(json_sp$result$usage$name$rank),
+            stringsAsFactors = FALSE
+          )
+
+          # Classification of the higher taxonomic level
+          taxon_higher_df <- tryCatch(
+            {
+              fromJSON(paste0(
+                "https://api.checklistbank.org/dataset/", dataset_number,
+                "/taxon/", taxon_lower_df$id, "/classification"
+              )) %>%
+                select(id, name, authorship, rank) %>%
+                slice(n():1) # Revert order
+            },
+            error = function(e) data.frame(id = NA, name = NA, authorship = NA, rank = NA)
+          )
+
+          classification <- rbind(taxon_higher_df, taxon_lower_df)
+
+          resolved_temp <- data.frame(
+            originalName = name,
+            colNamesAccepted = taxon_lower_df$name,
+            colID = taxon_lower_df$id,
+            taxonRank = taxon_lower_df$rank,
+            Life = "Life",
+            lifeAuthor = NA,
+            Kingdom = get_info(classification, "name", "kingdom"),
+            kingdomAuthor = get_info(classification, "authorship", "kingdom"),
+            Phylum = get_info(classification, "name", "phylum"),
+            phylumAuthor = get_info(classification, "authorship", "phylum"),
+            Parvphylum = get_info(classification, "name", "parvphylum"),
+            parvphylumAuthor = get_info(classification, "authorship", "parvphylum"),
+            Gigaclass = get_info(classification, "name", "gigaclass"),
+            gigaclassAuthor = get_info(classification, "authorship", "gigaclass"),
+            Class = get_info(classification, "name", "class"),
+            classAuthor = get_info(classification, "authorship", "class"),
+            Order = get_info(classification, "name", "order"),
+            orderAuthor = get_info(classification, "authorship", "order"),
+            Family = get_info(classification, "name", "family"),
+            familyAuthor = get_info(classification, "authorship", "family"),
+            Genus = get_info(classification, "name", "genus"),
+            genusAuthor = get_info(classification, "authorship", "genus"),
+            Species = word(get_info(classification, "name", "species"), -1),
+            speciesAuthor = get_info(classification, "authorship", "species"),
+            Subspecies = word(get_info(classification, "name", "subspecies"), -1),
+            subspeciesAuthor = get_info(classification, "authorship", "subspecies"),
+            Variety = word(get_info(classification, "name", "variety"), -1),
+            varietyAuthor = get_info(classification, "authorship", "variety"),
+            stringsAsFactors = FALSE
+          )
+
+          fun_result$resolved <- rbind(fun_result$resolved, resolved_temp)
+        }
+
+        if (in_shiny) incProgress(1 / length(x))
+      } # end for
+    }) # end withProgress
+  } else {
+    # If not in Shiny, just run the loop without progress bar
+    for (name in x) {
+      sp_name <- URLencode(name)
+
+      json_sp <- tryCatch(
+        {
+          fromJSON(paste0(
+            "https://api.checklistbank.org/dataset/", dataset_number,
+            "/nameusage/search?content=SCIENTIFIC_NAME&q=", sp_name,
+            "&type=EXACT&offset=0&limit=20"
+          ))
+        },
+        error = function(e) NULL
+      )
+
+      # Species not found
+      if (is.null(json_sp) || isTRUE(json_sp$empty)) {
+        fun_result$resolved <- rbind(
+          fun_result$resolved,
+          data.frame(
+            originalName = name,
+            colNamesAccepted = "Not found",
+            colID = "Not found",
+            taxonRank = "Not found",
+            Life = "Not found",
+            lifeAuthor = "Not found",
+            Kingdom = "Not found",
+            kingdomAuthor = "Not found",
+            Phylum = "Not found",
+            phylumAuthor = "Not found",
+            Parvphylum = "Not found",
+            parvphylumAuthor = "Not found",
+            Gigaclass = "Not found",
+            gigaclassAuthor = "Not found",
+            Class = "Not found",
+            classAuthor = "Not found",
+            Order = "Not found",
+            orderAuthor = "Not found",
+            Family = "Not found",
+            familyAuthor = "Not found",
+            Genus = "Not found",
+            genusAuthor = "Not found",
+            Species = "Not found",
+            speciesAuthor = "Not found",
+            Subspecies = "Not found",
+            subspeciesAuthor = "Not found",
+            Variety = "Not found",
+            varietyAuthor = "Not found",
+            stringsAsFactors = FALSE
+          )
+        )
+        next
       }
-      
-      # Increment progress
-      incProgress(1/length(x), detail = paste("Processing:", i, "of", length(x)))
-    } # end loop
-    
-  }) # end withProgress
-  
-  return(list(resolved = resolved_df, ambiguous = ambiguous_list))
+
+      status <- json_sp$result$usage$status
+      acc <- grepl("accepted", status)
+
+      # Multiple accepted names
+      if (length(status) > 1) {
+        ambiguous_temp <- list()
+        ambiguous_temp[[name]] <- json_sp$result$usage$id
+        fun_result$ambiguous <- c(fun_result$ambiguous, ambiguous_temp)
+        next
+      }
+
+      # Single accepted name
+      if (any(acc)) {
+        taxon_lower_df <- data.frame(
+          id = ch0_to_Na(json_sp$result$usage$id),
+          name = ch0_to_Na(json_sp$result$usage$name$scientificName),
+          authorship = ch0_to_Na(json_sp$result$usage$name$authorship),
+          rank = ch0_to_Na(json_sp$result$usage$name$rank),
+          stringsAsFactors = FALSE
+        )
+
+        # Classification of the higher taxonomic level
+        taxon_higher_df <- tryCatch(
+          {
+            fromJSON(paste0(
+              "https://api.checklistbank.org/dataset/", dataset_number,
+              "/taxon/", taxon_lower_df$id, "/classification"
+            )) %>%
+              select(id, name, authorship, rank) %>%
+              slice(n():1) # Revert df order (from Domain to species)
+          },
+          error = function(e) data.frame(id = NA, name = NA, authorship = NA, rank = NA)
+        )
+
+        classification <- rbind(taxon_higher_df, taxon_lower_df)
+
+        # Create dataframe with taxonomic information
+        resolved_temp <- data.frame(
+          originalName = name,
+          colNamesAccepted = taxon_lower_df$name,
+          colID = taxon_lower_df$id,
+          taxonRank = taxon_lower_df$rank,
+          Life = "Life",
+          lifeAuthor = NA,
+          Kingdom = get_info(classification, "name", "kingdom"),
+          kingdomAuthor = get_info(classification, "authorship", "kingdom"),
+          Phylum = get_info(classification, "name", "phylum"),
+          phylumAuthor = get_info(classification, "authorship", "phylum"),
+          Parvphylum = get_info(classification, "name", "parvphylum"),
+          parvphylumAuthor = get_info(classification, "authorship", "parvphylum"),
+          Gigaclass = get_info(classification, "name", "gigaclass"),
+          gigaclassAuthor = get_info(classification, "authorship", "gigaclass"),
+          Class = get_info(classification, "name", "class"),
+          classAuthor = get_info(classification, "authorship", "class"),
+          Order = get_info(classification, "name", "order"),
+          orderAuthor = get_info(classification, "authorship", "order"),
+          Family = get_info(classification, "name", "family"),
+          familyAuthor = get_info(classification, "authorship", "family"),
+          Genus = get_info(classification, "name", "genus"),
+          genusAuthor = get_info(classification, "authorship", "genus"),
+          Species = word(get_info(classification, "name", "species"), -1),
+          speciesAuthor = get_info(classification, "authorship", "species"),
+          Subspecies = word(get_info(classification, "name", "subspecies"), -1),
+          subspeciesAuthor = get_info(classification, "authorship", "subspecies"),
+          Variety = word(get_info(classification, "name", "variety"), -1),
+          varietyAuthor = get_info(classification, "authorship", "variety"),
+          stringsAsFactors = FALSE
+        )
+
+        fun_result$resolved <- rbind(fun_result$resolved, resolved_temp)
+      }
+    }
+  }
+  return(fun_result)
+}
+
+
+#' Resolve Taxa by ID Using the ChecklistBank API
+#'
+#' Retrieves accepted taxonomic information for one or more taxon IDs
+#' from a specified ChecklistBank dataset via the API.
+#'
+#' For each supplied taxon ID, the function returns the accepted
+#' scientific name and its full taxonomic classification
+#' (Kingdom to infraspecific ranks, when available).
+#'
+#' If a taxon ID is not found or an error occurs during the API request,
+#' "Not found" values are returned for all taxonomic fields.
+#'
+#' When executed inside a Shiny application, a progress bar is displayed.
+#'
+#' @param x A character vector of ChecklistBank taxon IDs.
+#' @param dataset_number Numeric. ChecklistBank dataset identifier.
+#'   Default is \code{312361}.
+#'
+#' @details
+#' The function uses the ChecklistBank API:
+#' \url{https://api.checklistbank.org/}
+#'
+#' Classification data are retrieved from the corresponding
+#' \code{/classification} endpoint of the dataset.
+#'
+#' @examples
+#' \dontrun{
+#' ids <- c("BDW6P", "7QH3K")
+#' result <- col_by_id(ids)
+#'
+#' # View resolved taxa
+#' result
+#' }
+#'
+col_by_id <- function(x, dataset_number = 312361) {
+  fun_result <- data.frame()
+
+
+  # Only define progress if running inside Shiny
+  in_shiny <- exists("getDefaultReactiveDomain") && !is.null(getDefaultReactiveDomain())
+
+  if (in_shiny) {
+    withProgress(message = "Processing species names...", value = 0, {
+      n <- length(x)
+
+      for (i in seq_along(x)) {
+        sp_id <- URLencode(x[i])
+        json_sp <- tryCatch(
+          {
+            fromJSON(paste0("https://api.checklistbank.org/dataset/", dataset_number, "/taxon/", sp_id))
+          },
+          error = function(e) NULL
+        )
+
+        # Species not found
+        if (is.null(json_sp) || isTRUE(json_sp$empty)) {
+          fun_result <- rbind(
+            fun_result,
+            data.frame(
+              originalName = "Not found",
+              colNamesAccepted = "Not found",
+              colID = sp_id,
+              taxonRank = "Not found",
+              Life = "Not found",
+              lifeAuthor = "Not found",
+              Kingdom = "Not found",
+              kingdomAuthor = "Not found",
+              Phylum = "Not found",
+              phylumAuthor = "Not found",
+              Parvphylum = "Not found",
+              parvphylumAuthor = "Not found",
+              Gigaclass = "Not found",
+              gigaclassAuthor = "Not found",
+              Class = "Not found",
+              classAuthor = "Not found",
+              Order = "Not found",
+              orderAuthor = "Not found",
+              Family = "Not found",
+              familyAuthor = "Not found",
+              Genus = "Not found",
+              genusAuthor = "Not found",
+              Species = "Not found",
+              speciesAuthor = "Not found",
+              Subspecies = "Not found",
+              subspeciesAuthor = "Not found",
+              Variety = "Not found",
+              varietyAuthor = "Not found",
+              stringsAsFactors = FALSE
+            )
+          )
+          if (in_shiny) incProgress(1 / n)
+          next
+        }
+
+        status <- json_sp$status
+        acc <- grepl("accepted", status)
+
+        # Single accepted name
+        if (any(acc)) {
+          taxon_lower_df <- data.frame(
+            id = ch0_to_Na(json_sp$id),
+            name = ch0_to_Na(json_sp$name$scientificName),
+            authorship = ch0_to_Na(json_sp$name$authorship),
+            rank = ch0_to_Na(json_sp$name$rank),
+            stringsAsFactors = FALSE
+          )
+
+          # Classification of the higher taxonomic level
+          taxon_higher_df <- tryCatch(
+            {
+              fromJSON(paste0(
+                "https://api.checklistbank.org/dataset/",
+                dataset_number, "/taxon/", taxon_lower_df$id, "/classification"
+              )) %>%
+                select(id, name, authorship, rank) %>%
+                slice(n():1) # Revert df order (from Domain to species)
+            },
+            error = function(e) data.frame(id = NA, name = NA, authorship = NA, rank = NA)
+          )
+
+          classification <- rbind(taxon_higher_df, taxon_lower_df)
+
+          resolved_temp <- data.frame(
+            originalName = taxon_lower_df$name,
+            colNamesAccepted = taxon_lower_df$name,
+            colID = taxon_lower_df$id,
+            taxonRank = taxon_lower_df$rank,
+            Life = "Life",
+            lifeAuthor = NA,
+            Kingdom = get_info(classification, "name", "kingdom"),
+            kingdomAuthor = get_info(classification, "authorship", "kingdom"),
+            Phylum = get_info(classification, "name", "phylum"),
+            phylumAuthor = get_info(classification, "authorship", "phylum"),
+            Parvphylum = get_info(classification, "name", "parvphylum"),
+            parvphylumAuthor = get_info(classification, "authorship", "parvphylum"),
+            Gigaclass = get_info(classification, "name", "gigaclass"),
+            gigaclassAuthor = get_info(classification, "authorship", "gigaclass"),
+            Class = get_info(classification, "name", "class"),
+            classAuthor = get_info(classification, "authorship", "class"),
+            Order = get_info(classification, "name", "order"),
+            orderAuthor = get_info(classification, "authorship", "order"),
+            Family = get_info(classification, "name", "family"),
+            familyAuthor = get_info(classification, "authorship", "family"),
+            Genus = get_info(classification, "name", "genus"),
+            genusAuthor = get_info(classification, "authorship", "genus"),
+            Species = word(get_info(classification, "name", "species"), -1),
+            speciesAuthor = get_info(classification, "authorship", "species"),
+            Subspecies = word(get_info(classification, "name", "subspecies"), -1),
+            subspeciesAuthor = get_info(classification, "authorship", "subspecies"),
+            Variety = word(get_info(classification, "name", "variety"), -1),
+            varietyAuthor = get_info(classification, "authorship", "variety"),
+            stringsAsFactors = FALSE
+          )
+
+          fun_result <- rbind(fun_result, resolved_temp)
+        }
+
+        if (in_shiny) incProgress(1 / length(x))
+      } # end for
+    }) # end withProgress
+  } else {
+    # If not in Shiny, just run the loop without progress bar
+    for (id in x) {
+      sp_id <- URLencode(id)
+
+      json_sp <- tryCatch(
+        {
+          fromJSON(paste0("https://api.checklistbank.org/dataset/", dataset_number, "/taxon/", sp_id))
+        },
+        error = function(e) NULL
+      )
+
+      # Species not found
+      if (is.null(json_sp) || isTRUE(json_sp$empty)) {
+        fun_result <- rbind(
+          fun_result,
+          data.frame(
+            originalName = "Not found",
+            colNamesAccepted = "Not found",
+            colID = sp_id,
+            taxonRank = "Not found",
+            Life = "Not found",
+            lifeAuthor = "Not found",
+            Kingdom = "Not found",
+            kingdomAuthor = "Not found",
+            Phylum = "Not found",
+            phylumAuthor = "Not found",
+            Parvphylum = "Not found",
+            parvphylumAuthor = "Not found",
+            Gigaclass = "Not found",
+            gigaclassAuthor = "Not found",
+            Class = "Not found",
+            classAuthor = "Not found",
+            Order = "Not found",
+            orderAuthor = "Not found",
+            Family = "Not found",
+            familyAuthor = "Not found",
+            Genus = "Not found",
+            genusAuthor = "Not found",
+            Species = "Not found",
+            speciesAuthor = "Not found",
+            Subspecies = "Not found",
+            subspeciesAuthor = "Not found",
+            Variety = "Not found",
+            varietyAuthor = "Not found",
+            stringsAsFactors = FALSE
+          )
+        )
+        next
+      }
+
+      status <- json_sp$status
+      acc <- grepl("accepted", status)
+
+      # Single accepted name
+      if (any(acc)) {
+        taxon_lower_df <- data.frame(
+          id = ch0_to_Na(json_sp$id),
+          name = ch0_to_Na(json_sp$name$scientificName),
+          authorship = ch0_to_Na(json_sp$name$authorship),
+          rank = ch0_to_Na(json_sp$name$rank),
+          stringsAsFactors = FALSE
+        )
+
+        # Classification of the higher taxonomic level
+        taxon_higher_df <- tryCatch(
+          {
+            fromJSON(paste0(
+              "https://api.checklistbank.org/dataset/",
+              dataset_number, "/taxon/", taxon_lower_df$id, "/classification"
+            )) %>%
+              select(id, name, authorship, rank) %>%
+              slice(n():1) # Revert df order (from Domain to species)
+          },
+          error = function(e) data.frame(id = NA, name = NA, authorship = NA, rank = NA)
+        )
+
+        classification <- rbind(taxon_higher_df, taxon_lower_df)
+
+        # Create dataframe with taxonomic information
+        resolved_temp <- data.frame(
+          originalName = taxon_lower_df$name,
+          colNamesAccepted = taxon_lower_df$name,
+          colID = taxon_lower_df$id,
+          taxonRank = taxon_lower_df$rank,
+          Life = "Life",
+          lifeAuthor = NA,
+          Kingdom = get_info(classification, "name", "kingdom"),
+          kingdomAuthor = get_info(classification, "authorship", "kingdom"),
+          Phylum = get_info(classification, "name", "phylum"),
+          phylumAuthor = get_info(classification, "authorship", "phylum"),
+          Parvphylum = get_info(classification, "name", "parvphylum"),
+          parvphylumAuthor = get_info(classification, "authorship", "parvphylum"),
+          Gigaclass = get_info(classification, "name", "gigaclass"),
+          gigaclassAuthor = get_info(classification, "authorship", "gigaclass"),
+          Class = get_info(classification, "name", "class"),
+          classAuthor = get_info(classification, "authorship", "class"),
+          Order = get_info(classification, "name", "order"),
+          orderAuthor = get_info(classification, "authorship", "order"),
+          Family = get_info(classification, "name", "family"),
+          familyAuthor = get_info(classification, "authorship", "family"),
+          Genus = get_info(classification, "name", "genus"),
+          genusAuthor = get_info(classification, "authorship", "genus"),
+          Species = word(get_info(classification, "name", "species"), -1),
+          speciesAuthor = get_info(classification, "authorship", "species"),
+          Subspecies = word(get_info(classification, "name", "subspecies"), -1),
+          subspeciesAuthor = get_info(classification, "authorship", "subspecies"),
+          Variety = word(get_info(classification, "name", "variety"), -1),
+          varietyAuthor = get_info(classification, "authorship", "variety"),
+          stringsAsFactors = FALSE
+        )
+
+        fun_result <- rbind(fun_result, resolved_temp)
+      }
+    }
+  }
+  return(fun_result)
 }
 
 
@@ -218,9 +644,8 @@ cbbdbCol <- function(x, dataset_number = 312361) {
 #'
 #' @keywords internal
 ch0_to_Na <- function(x, str = "") {
-  
   y <- ifelse(length(x) == 0 || is.na(x), str, x)
-  
+
   return(y)
 }
 
@@ -263,7 +688,7 @@ rm_origin <- function(x, y) {
 #' \dontrun{
 #' library(shiny)
 #' ui <- fluidPage(
-#'   "Hover over the icon:", 
+#'   "Hover over the icon:",
 #'   infoIconTooltip("This is some helpful information.", color = "blue", width = 250)
 #' )
 #' shinyApp(ui, server = function(input, output) {})
@@ -361,7 +786,7 @@ extractTaxonWorms <- function(x) {
 #'
 #' Progress is displayed using \code{withProgress()} and \code{incProgress()} (Shiny compatible).
 #' -999 when multiple matches are found
-#' 
+#'
 #' @examples
 #' \dontrun{
 #' species <- c("Homo sapiens", "Puma concolor")
@@ -375,105 +800,105 @@ extractTaxonWorms <- function(x) {
 #' @importFrom shiny withProgress incProgress
 #' @export
 specifyWorms <- function(x) {
-  
-  colNames = data.frame()
-  
-  withProgress(message = "Downloading taxonomy", value = 0,
-               for (i in 1:length(x)) {
-                 sp.1 <- x[i]
-                 
-                 # Json query
-                 json.sp <- gsub(" ", "%20", sp.1)
-                 # Search taxon Aphia
-                 try(json <- fromJSON(paste0("https://www.marinespecies.org/rest/AphiaIDByName/", json.sp, "?marine_only=false")), silent = TRUE)
-                 
-                 if (!exists("json")) {
-                   # If the taxon is not present in COL
-                   colNames.1 <- data.frame(
-                     originalName = sp.1,
-                     colNamesAccepted = "Not found",
-                     Life = "Not found",
-                     Kingdom = "Not found",
-                     Phylum = "Not found",
-                     Class = "Not found",
-                     Order = "Not found",
-                     Family = "Not found",
-                     Genus = "Not found",
-                     Species = "Not found",
-                     Subspecies = "Not found",
-                     originalStatus = "Not found",
-                     taxonRank = "Not Found",
-                     brackish = "Not Found",
-                     freshwater = "Not Found",
-                     marine = "Not Found",
-                     terrestrial = "Not Found"
-                   )
-                 } else {
-                   if (json == -999) {
-                     # If the taxon is not present in COL
-                     colNames.1 <- data.frame(
-                       originalName = sp.1,
-                       colNamesAccepted = "Multiple matches",
-                       Life = "Life",
-                       Kingdom = "Multiple matches",
-                       Phylum = "Multiple matches",
-                       Class = "Multiple matches",
-                       Order = "Multiple matches",
-                       Family = "Multiple matches",
-                       Genus = "Multiple matches",
-                       Species = "Multiple matches",
-                       Subspecies = "Multiple matches",
-                       originalStatus = "Multiple matches",
-                       taxonRank = "Multiple matches",
-                       brackish = "Multiple matches",
-                       freshwater = "Multiple matches",
-                       marine = "Multiple matches",
-                       terrestrial = "Multiple matches")
-                   } else {
-                     
-                     classification <- extractTaxonWorms(fromJSON(paste0("https://www.marinespecies.org/rest/AphiaClassificationByAphiaID/", json)))
-                     
-                     sp.statusAndHabitat <- gsub(" ", "%20", classification$scientificname[nrow(classification)])
-                     statusAndHabitat <- fromJSON(paste0("http://www.marinespecies.org/rest/AphiaRecordsByName/", sp.statusAndHabitat, "?like=true&marine_only=false&offset=1"))
-                     
-                     statusAndHabitat <- statusAndHabitat[statusAndHabitat$AphiaID == json, ]
-                     
-                     
-                     colNames.1 <- data.frame(
-                       originalName = sp.1,
-                       colNamesAccepted = statusAndHabitat$scientificname[statusAndHabitat$AphiaID == json],
-                       Life = "Life",
-                       Kingdom = ch0_to_Na(classification$scientificname[classification$rank == "Kingdom"]),
-                       Phylum = ch0_to_Na(classification$scientificname[classification$rank == "Phylum"]),
-                       Class = ch0_to_Na(classification$scientificname[classification$rank == "Class"]),
-                       Order = ch0_to_Na(classification$scientificname[classification$rank == "Order"]),
-                       Family = ch0_to_Na(classification$scientificname[classification$rank == "Family"]),
-                       Genus = ch0_to_Na(classification$scientificname[classification$rank == "Genus"]),
-                       Species = ch0_to_Na(word(classification$scientificname[classification$rank == "Species"],-1)),
-                       Subspecies = ch0_to_Na(word(classification$scientificname[classification$rank == "Subspecies"],-1)),
-                       originalStatus = statusAndHabitat$status[statusAndHabitat$AphiaID == json],
-                       taxonRank = tolower(classification$rank[nrow(classification)]),
-                       brackish = statusAndHabitat$isBrackish != 0,
-                       freshwater = statusAndHabitat$isFreshwater != 0,
-                       marine = statusAndHabitat$isMarine != 0,
-                       terrestrial = statusAndHabitat$isTerrestrial != 0) %>%
-                       unique()
-                     
-                   }
-                   
-                 }
-                 
-                 colNames <- rbind(colNames, colNames.1)
-                 
-                 if (exists("json")) {rm(json)}
-                 
-                 # print(paste(i, "---- of ----", length(x)))
-                 
-                 # Increment the progress bar, and update the detail text.
-                 incProgress(1/length(x), detail = paste("Doing:", i))
-               }
+  colNames <- data.frame()
+
+  withProgress(
+    message = "Downloading taxonomy", value = 0,
+    for (i in 1:length(x)) {
+      sp.1 <- x[i]
+
+      # Json query
+      json.sp <- gsub(" ", "%20", sp.1)
+      # Search taxon Aphia
+      try(json <- fromJSON(paste0("https://www.marinespecies.org/rest/AphiaIDByName/", json.sp, "?marine_only=false")), silent = TRUE)
+
+      if (!exists("json")) {
+        # If the taxon is not present in COL
+        colNames.1 <- data.frame(
+          originalName = sp.1,
+          colNamesAccepted = "Not found",
+          Life = "Not found",
+          Kingdom = "Not found",
+          Phylum = "Not found",
+          Class = "Not found",
+          Order = "Not found",
+          Family = "Not found",
+          Genus = "Not found",
+          Species = "Not found",
+          Subspecies = "Not found",
+          originalStatus = "Not found",
+          taxonRank = "Not Found",
+          brackish = "Not Found",
+          freshwater = "Not Found",
+          marine = "Not Found",
+          terrestrial = "Not Found"
+        )
+      } else {
+        if (json == -999) {
+          # If the taxon is not present in COL
+          colNames.1 <- data.frame(
+            originalName = sp.1,
+            colNamesAccepted = "Multiple matches",
+            Life = "Life",
+            Kingdom = "Multiple matches",
+            Phylum = "Multiple matches",
+            Class = "Multiple matches",
+            Order = "Multiple matches",
+            Family = "Multiple matches",
+            Genus = "Multiple matches",
+            Species = "Multiple matches",
+            Subspecies = "Multiple matches",
+            originalStatus = "Multiple matches",
+            taxonRank = "Multiple matches",
+            brackish = "Multiple matches",
+            freshwater = "Multiple matches",
+            marine = "Multiple matches",
+            terrestrial = "Multiple matches"
+          )
+        } else {
+          classification <- extractTaxonWorms(fromJSON(paste0("https://www.marinespecies.org/rest/AphiaClassificationByAphiaID/", json)))
+
+          sp.statusAndHabitat <- gsub(" ", "%20", classification$scientificname[nrow(classification)])
+          statusAndHabitat <- fromJSON(paste0("http://www.marinespecies.org/rest/AphiaRecordsByName/", sp.statusAndHabitat, "?like=true&marine_only=false&offset=1"))
+
+          statusAndHabitat <- statusAndHabitat[statusAndHabitat$AphiaID == json, ]
+
+
+          colNames.1 <- data.frame(
+            originalName = sp.1,
+            colNamesAccepted = statusAndHabitat$scientificname[statusAndHabitat$AphiaID == json],
+            Life = "Life",
+            Kingdom = ch0_to_Na(classification$scientificname[classification$rank == "Kingdom"]),
+            Phylum = ch0_to_Na(classification$scientificname[classification$rank == "Phylum"]),
+            Class = ch0_to_Na(classification$scientificname[classification$rank == "Class"]),
+            Order = ch0_to_Na(classification$scientificname[classification$rank == "Order"]),
+            Family = ch0_to_Na(classification$scientificname[classification$rank == "Family"]),
+            Genus = ch0_to_Na(classification$scientificname[classification$rank == "Genus"]),
+            Species = ch0_to_Na(word(classification$scientificname[classification$rank == "Species"], -1)),
+            Subspecies = ch0_to_Na(word(classification$scientificname[classification$rank == "Subspecies"], -1)),
+            originalStatus = statusAndHabitat$status[statusAndHabitat$AphiaID == json],
+            taxonRank = tolower(classification$rank[nrow(classification)]),
+            brackish = statusAndHabitat$isBrackish != 0,
+            freshwater = statusAndHabitat$isFreshwater != 0,
+            marine = statusAndHabitat$isMarine != 0,
+            terrestrial = statusAndHabitat$isTerrestrial != 0
+          ) %>%
+            unique()
+        }
+      }
+
+      colNames <- rbind(colNames, colNames.1)
+
+      if (exists("json")) {
+        rm(json)
+      }
+
+      # print(paste(i, "---- of ----", length(x)))
+
+      # Increment the progress bar, and update the detail text.
+      incProgress(1 / length(x), detail = paste("Doing:", i))
+    }
   )
-  
+
   return(colNames)
 }
-

@@ -2,17 +2,18 @@
 # Shiny App CBB Taxonomy v. 0.1 #
 #-------------------------------#
 
-# Load libraries
-pacman::p_load(bslib, CoordinateCleaner, data.table, DT, jsonlite, leaflet, shiny, tidyverse, 
-               rgbif, sf, biomonitoR, vegan, openxlsx, red, rredlist, plotly,
-               terra)
 # Tutorial: https://rstudio.github.io/bslib/articles/dashboards/index.html
+
+# Load libraries
+pacman::p_load(
+  bslib, data.table, DT, jsonlite, leaflet, shiny, tidyverse,
+  rgbif, sf, biomonitoR, vegan, openxlsx, red, rredlist, plotly,
+  terra
+)
 
 #----------#
 # Function ---------------------------------------------------------------------
 #----------#
-
-# lapply(list.files("./function", pattern = "\\.R$", full.names = TRUE), source)
 
 source("./utils.R")
 
@@ -20,24 +21,15 @@ source("./utils.R")
 # Cards ------------------------------------------------------------------------
 #------#
 
-# Home 
-cards.home <- source("./Cards/card_home.R")$value
-# cards.home[[5]]
+# Home
+cards.taxonomy <- source("./Cards/card_home.R")$value
+# cards.taxonomy[[1]]
 
 # Taxonomy
 cards.taxonomy <- source("./Cards/card_taxonomy.R")$value
 # cards.taxonomy[[1]]
 
-# Maps
-cards.maps <- source("./Cards/card_maps.R")$value
-# cards.maps[[1]]
-
-# Ecology
-cards.ecology <- source("./Cards/card_ecology.R")$value
-# cards.ecology[[1]]
-
-
-#------# 
+#------#
 # Links ------------------------------------------------------------------------
 #------#
 
@@ -51,84 +43,81 @@ link_git <- tags$a(
 # UI ---------------------------------------------------------------------------
 #---#
 
-
-ui <- page_navbar(
-  
-  theme = bs_theme(version = 5, 
-                   bg= "#FFF",
-                   fg = "#101010",
-                   primary = "#00acba",
-                   secondary = "#7ebc00",
-                   success = "#be4358",
-                   base_font = font_google("Inter"),
-                   code_font = font_google("JetBrains Mono"),
-                   font_scale = 0.8
-                   ), # Bootstrap version and theme: bootswatch = "superhero"
-  
-  
+# Define UI
+ui <- navbarPage(
+  title = "BioDivers",
+  theme = bs_theme(
+    version = 5,
+    bg = "#FFF",
+    fg = "#101010",
+    primary = "#00acba",
+    secondary = "#7ebc00",
+    success = "#be4358",
+    base_font = font_google("Inter"),
+    code_font = font_google("JetBrains Mono"),
+    font_scale = 0.8
+  ),
+  fluid = TRUE,
+  collapsible = TRUE,
   header = tags$style(HTML("
-    /* Hover effect for navbar links */
-    .navbar .nav-link:hover {
-      background-color: #00acba !important; /* blue */
-      color: #ffffff !important;            /* text color while hovering */
-      border-radius: 6px;                    /* rounded corners */
-    }")),
-  
-  title = "BioDivers", # title of the app
-  
-  # Home panel ----
-  nav_panel(title = "Home",
-            cards.home[[1]]
-            ),
-            
-  # Taxonomy panel ----
-  nav_panel(title = "Taxonomy",
-            layout_columns(
-              fill = TRUE, 
-              col_widths = 12,
-              cards.taxonomy[[1]]
-              )
-            ),
-  
-  # Maps panel ----
-  nav_panel(title = "Map",
-            layout_columns(
-              fill = FALSE, 
-              col_widths = 12,
-              cards.maps[[1]]
-              )
-            ),
-  
-  # Ecology panel ----
-  nav_panel(title = "Ecology",
-            layout_columns(
-              fill = TRUE, 
-              col_widths = 12,
-              cards.ecology[[1]]
-              )
-            ),
-  
-  # Help panel
-  nav_panel(title = "Help"),
-  
-  # GitHub link
-  nav_spacer(),
-  nav_item(link_git)
-  
+        .navbar .nav-link:hover {
+          background-color: #00acba !important;
+          color: #ffffff !important;
+          border-radius: 6px;
+        }
+    ")),
+
+  # -----------------------
+  # Tab 1: Landing
+  # tabPanel(
+  #   "Home",
+  #   includeHTML("Cards/card_landing.html"),
+  #   tags$script(src = "plugins/scripts.js"),
+  #   tags$head(
+  #     tags$link(
+  #       rel = "stylesheet",
+  #       type = "text/css",
+  #       href = "plugins/font-awesome-4.7.0/css/font-awesome.min.css"
+  #     ),
+  #     tags$link(
+  #       rel = "icon",
+  #       type = "image/png",
+  #       href = "images/logo_icon.png"
+  #     )
+  #   )
+  # ),
+
+  # -----------------------
+  # Tab 1: Home
+  tabPanel(
+    "Home",
+    layout_columns(
+      fill = TRUE,
+      col_widths = 12,
+      cards.home[[1]]
+    )
+  ),
+
+  # -----------------------
+  # Tab 2: Taxonomy Overview (without table)
+  tabPanel(
+    "Taxonomy",
+    layout_columns(
+      fill = TRUE,
+      col_widths = 12,
+      cards.taxonomy[[1]]
+    )
+  ),
+
+  # -----------------------
+  # Footer / GitHub link
+  footer = tags$div(
+    style = "text-align:center; padding:10px;",
+    tags$a(
+      shiny::icon("github"),
+      "GitHub",
+      href = "https://github.com/centrebalearbiodiversitat/CBB_App",
+      target = "_blank"
+    )
+  )
 )
-
-server <- function(input, output, session) {
-  
-  # Taxonomy -------------------------------------------------------------------
-  source("./Server/01_Taxonomy_v2.R", local = T)
-  
-  # Maps -----------------------------------------------------------------------
-  source("./Server/02_Maps_v3.R", local = T)
-  
-  # biomonitoR -----------------------------------------------------------------
-  source("./Server/03_biomonitoR_v2.R", local = T)
-
-  }
-
-shinyApp(ui, server, options = list(launch.browser = TRUE))
-
